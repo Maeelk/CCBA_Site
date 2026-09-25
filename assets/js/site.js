@@ -339,140 +339,99 @@
 })();
 
 /* ==========================================================================
-   Relief : courbes de niveau animées, dessinées en WebGL (aucune dépendance).
-   - un champ de hauteur (bruit fractal) animé très lentement ;
-   - une « colline » centrée sur le soleil rouge pêche, et une autre sous le curseur ;
-   - repli : motif SVG statique si WebGL indisponible ; une seule image si l'usager réduit les animations ;
-   - pause hors écran et onglet masqué (économie d'énergie).
+   Soleil réel : position du soleil au-dessus d'Aubenas à l'heure de la visite
+   (lever → gauche du bandeau, coucher → droite ; sous la crête la nuit).
+   Calcul astronomique simplifié (algorithme type SunCalc), sans dépendance.
    ========================================================================== */
 (function () {
-  'use strict';
-  var list = Array.prototype.slice.call(document.querySelectorAll('canvas[data-relief]'));
-  if (!list.length) return;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var fine = window.matchMedia && window.matchMedia('(pointer: fine)').matches;
-  var VS = 'attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
-  var FS = [
-    '#extension GL_OES_standard_derivatives : enable',
-    'precision highp float;',
-    'uniform vec2 uRes;uniform float uU;uniform float uT;uniform vec3 uHill;uniform vec3 uCur;uniform float uSeed;uniform float uLv;uniform float uSc;uniform vec3 uCol;uniform vec3 uAcc;uniform float uA;uniform float uRev;',
-    'vec3 pm(vec3 x){return mod(((x*34.)+1.)*x,289.);}',
-    'float sn(vec2 v){const vec4 C=vec4(.211324865405187,.366025403784439,-.577350269189626,.024390243902439);vec2 i=floor(v+dot(v,C.yy));vec2 x0=v-i+dot(i,C.xx);vec2 i1=(x0.x>x0.y)?vec2(1.,0.):vec2(0.,1.);vec4 x12=x0.xyxy+C.xxzz;x12.xy-=i1;i=mod(i,289.);vec3 p=pm(pm(i.y+vec3(0.,i1.y,1.))+i.x+vec3(0.,i1.x,1.));vec3 m=max(.5-vec3(dot(x0,x0),dot(x12.xy,x12.xy),dot(x12.zw,x12.zw)),0.);m=m*m;m=m*m;vec3 x=2.*fract(p*C.www)-1.;vec3 h=abs(x)-.5;vec3 ox=floor(x+.5);vec3 a0=x-ox;m*=1.79284291400159-.85373472095314*(a0*a0+h*h);vec3 g;g.x=a0.x*x0.x+h.x*x0.y;g.yz=a0.yz*x12.xz+h.yz*x12.yw;return 130.*dot(m,g);}',
-    'float fbm(vec2 p){float f=0.,a=.55;mat2 m=mat2(1.6,1.2,-1.2,1.6);for(int i=0;i<3;i++){f+=a*sn(p);p=m*p;a*=.38;}return f;}',
-    'void main(){',
-    ' vec2 uv=gl_FragCoord.xy/uU;',
-    ' float t=uT*.018;',
-    ' vec2 p=uv*uSc+uSeed*vec2(7.13,-3.71);',
-    ' vec2 q=vec2(fbm(p+vec2(0.,t)),fbm(p+vec2(5.2,1.3)-t));',
-    ' float h=fbm(p+.32*q+vec2(t*.6,-t*.4))*.5+.5;',
-    ' float dh=length(uv-uHill.xy/uU);',
-    ' float hill=uHill.z*exp(-dh*dh*3.2);',
-    ' float dc=length(uv-uCur.xy/uU);',
-    ' float cur=uCur.z*.32*exp(-dc*dc*26.);',
-    ' h+=hill+cur;',
-    ' float v=h*uLv; float fw=fwidth(v);',
-    ' float d=abs(fract(v+.5)-.5)/max(fw,1e-4);',
-    ' float k=floor(v+.5); float idx=1.-step(.5,mod(k,5.));',
-    ' float ln=1.-smoothstep(mix(.45,.9,idx),mix(1.25,1.9,idx),d);',
-    ' ln*=1.-smoothstep(.3,.65,fw);',
-    ' float warm=clamp(hill*1.1+cur*2.6,0.,1.);',
-    ' vec3 col=mix(uCol,uAcc,warm*warm);',
-    ' float a=ln*uA*mix(.55,1.,idx)*mix(1.,1.7,warm*warm);',
-    ' a*=1.-smoothstep(uRev-.3,uRev,dh);',
-    ' gl_FragColor=vec4(col*a,a);',
-    '}'].join('\n');
-
-  function rgb(hex) { var n = parseInt(hex.replace('#', ''), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
-  var css = getComputedStyle(document.documentElement);
-  var COL = rgb((css.getPropertyValue('--relief-line') || '#B8A08A').trim());
-  var ACC = rgb((css.getPropertyValue('--peche') || '#E14248').trim());
-
-  function Relief(cv) {
-    var gl = cv.getContext('webgl', { antialias: false, premultipliedAlpha: true, alpha: true, powerPreference: 'low-power' });
-    if (!gl || !gl.getExtension('OES_standard_derivatives')) { cv.parentNode.classList.add('relief-fallback'); return null; }
-    function sh(type, src) { var o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); return gl.getShaderParameter(o, gl.COMPILE_STATUS) ? o : null; }
-    var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
-    if (!vs || !fs) { cv.parentNode.classList.add('relief-fallback'); return null; }
-    var pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
-    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.parentNode.classList.add('relief-fallback'); return null; }
-    gl.useProgram(pr);
-    var buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    var loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    var U = {}; ['uRes', 'uU', 'uT', 'uHill', 'uCur', 'uSeed', 'uLv', 'uSc', 'uCol', 'uAcc', 'uA', 'uRev'].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
-    var ds = cv.dataset;
-    gl.uniform1f(U.uSeed, parseFloat(ds.seed || '1'));
-    gl.uniform1f(U.uLv, parseFloat(ds.levels || '14'));
-    gl.uniform1f(U.uSc, parseFloat(ds.scale || '2'));
-    gl.uniform3fv(U.uCol, COL); gl.uniform3fv(U.uAcc, ACC);
-    gl.uniform1f(U.uA, parseFloat(ds.alpha || '.5'));
-    var anchor = ds.anchor ? document.querySelector(ds.anchor) : null;
-    var hillH = parseFloat(ds.hill || '.5');
-    var st = { w: 0, h: 0, dpr: 1, cur: [0, 0, 0], curT: [0, 0, 0], on: false, t0: performance.now(), rev: reduce ? 9 : 0, last: 0, raf: 0 };
-    function size() {
-      var r = cv.getBoundingClientRect();
-      st.dpr = Math.min(window.devicePixelRatio || 1, r.width > 1100 ? 1.25 : 1.5);
-      var w = Math.max(1, Math.round(r.width * st.dpr)), h = Math.max(1, Math.round(r.height * st.dpr));
-      if (w !== st.w || h !== st.h) { st.w = cv.width = w; st.h = cv.height = h; gl.viewport(0, 0, w, h); }
-      st.rect = r;
-    }
-    function hillPos() {
-      if (!anchor) return [st.w * .8, st.h * .5];
-      var a = anchor.getBoundingClientRect(), r = cv.getBoundingClientRect();
-      return [(a.left + a.width / 2 - r.left) * st.dpr, (r.bottom - (a.top + a.height / 2)) * st.dpr];
-    }
-    function draw(now) {
-      var t = (now - st.t0) / 1000;
-      if (!reduce) st.rev = Math.min(9, t * 0.9);
-      for (var i = 0; i < 3; i++) st.cur[i] += (st.curT[i] - st.cur[i]) * 0.08;
-      var hp = hillPos();
-      gl.uniform2f(U.uRes, st.w, st.h);
-      gl.uniform1f(U.uU, 900 * st.dpr);
-      gl.uniform1f(U.uT, reduce ? 0 : t);
-      gl.uniform3f(U.uHill, hp[0], hp[1], hillH);
-      gl.uniform3f(U.uCur, st.cur[0], st.cur[1], st.cur[2]);
-      gl.uniform1f(U.uRev, st.rev);
-      gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    }
-    function loop(now) {
-      st.raf = 0;
-      if (!st.on) return;
-      if (now - st.last > 48) { st.last = now; draw(now); }
-      st.raf = requestAnimationFrame(loop);
-    }
-    function start() { if (!st.on && !reduce) { st.on = true; st.raf = requestAnimationFrame(loop); } }
-    function stop() { st.on = false; if (st.raf) cancelAnimationFrame(st.raf); st.raf = 0; }
-    size(); draw(performance.now());
-    cv.classList.add('is-on');
-    if (reduce) { window.addEventListener('resize', function () { size(); draw(performance.now()); }); return {}; }
-    window.addEventListener('resize', size);
-    if ('ResizeObserver' in window) new ResizeObserver(size).observe(cv);
-    if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { es.forEach(function (e) { e.isIntersecting ? start() : stop(); }); }).observe(cv);
-    else start();
-    document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
-    if (fine && ds.interactive !== undefined) {
-      var zone = cv.closest('section') || document.body;
-      zone.addEventListener('pointermove', function (e) {
-        var r = cv.getBoundingClientRect();
-        st.curT = [(e.clientX - r.left) * st.dpr, (r.bottom - e.clientY) * st.dpr, 1];
-        if (st.cur[2] < 0.01) { st.cur[0] = st.curT[0]; st.cur[1] = st.curT[1]; }
-      }, { passive: true });
-      zone.addEventListener('pointerleave', function () { st.curT[2] = 0; });
-    }
-    return st;
+  var band = document.querySelector('.hero-band[data-crest]');
+  if (!band) return;
+  var sun = band.querySelector('.hero-sun'), cap = band.querySelector('[data-sun-cap]');
+  var crest = band.getAttribute('data-crest').split(',').map(parseFloat);
+  var rad = Math.PI / 180, dayMs = 864e5, J1970 = 2440588, J2000 = 2451545, e = rad * 23.4397;
+  var toDays = function (d) { return d.valueOf() / dayMs - 0.5 + J1970 - J2000; };
+  var fromJ = function (j) { return new Date((j + 0.5 - J1970) * dayMs); };
+  function times(date, lat, lng) {
+    var lw = rad * -lng, phi = rad * lat, d = toDays(date);
+    var n = Math.round(d - 0.0009 - lw / (2 * Math.PI));
+    var ds = 0.0009 + lw / (2 * Math.PI) + n;
+    var M = rad * (357.5291 + 0.98560028 * ds);
+    var L = M + rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + rad * 102.9372 + Math.PI;
+    var dec = Math.asin(Math.sin(e) * Math.sin(L));
+    var Jnoon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    var w = Math.acos((Math.sin(-0.833 * rad) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec)));
+    var a = 0.0009 + (w + lw) / (2 * Math.PI) + n;
+    var Jset = J2000 + a + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+    return { rise: fromJ(Jnoon - (Jset - Jnoon)), set: fromJ(Jset), noonAlt: 90 - lat + dec / rad };
   }
-  list.forEach(function (cv) { try { Relief(cv); } catch (e) { cv.parentNode.classList.add('relief-fallback'); } });
+  var fmt = function (d) { return new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(d).replace(':', 'h'); };
+  function place() {
+    var now = new Date(), t = times(now, 44.62, 4.39);
+    var p = (now - t.rise) / (t.set - t.rise);
+    var day = p >= 0 && p <= 1;
+    var x = day ? p : (p < 0 ? 0.04 : 0.96);
+    var xs = 0.06 + 0.88 * x, idx = xs * (crest.length - 1), i0 = Math.floor(idx), f = idx - i0;
+    var cy = crest[i0] * (1 - f) + (crest[Math.min(i0 + 1, crest.length - 1)] || crest[i0]) * f;
+    var lift = day ? Math.sin(Math.PI * p) * Math.min(1, t.noonAlt / 65) * 0.13 : -0.2;   // fraction de la hauteur du bandeau
+    band.style.setProperty('--sun-x', (xs * 100).toFixed(2) + '%');
+    band.style.setProperty('--sun-y', ((cy - lift) * 100).toFixed(2) + '%');
+    band.classList.toggle('is-night', !day);
+    if (cap) { cap.hidden = false; cap.textContent = 'Soleil sur Aubenas · lever ' + fmt(t.rise) + ' · coucher ' + fmt(t.set); }
+  }
+  place(); setInterval(place, 60000);
 })();
 
-/* Soleil couchant : le disque rouge pêche descend doucement derrière la crête au défilement */
+/* ==========================================================================
+   France Services : état d'ouverture en direct + frise horaire du jour (8h–18h)
+   ========================================================================== */
 (function () {
-  var sun = document.querySelector('.hero-sun');
-  if (!sun || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
-  var tick = false;
-  function upd() { tick = false; var y = Math.min(window.scrollY, 700); sun.style.setProperty('--sink', (y * 0.14).toFixed(1) + 'px'); }
-  window.addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(upd); } }, { passive: true });
-  upd();
+  var rows = Array.prototype.slice.call(document.querySelectorAll('[data-fs]'));
+  if (!rows.length) return;
+  var DAYN = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var mins = function (s) { var a = s.split(':'); return +a[0] * 60 + +a[1]; };
+  var hh = function (m) { var h = Math.floor(m / 60), r = m % 60; return h + 'h' + (r ? String(r).padStart(2, '0') : ''); };
+  function nowParis() {
+    var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    var g = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
+    var wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday'));
+    return { d: wd === 0 ? 7 : wd, m: (+g('hour') % 24) * 60 + +g('minute') };
+  }
+  function render() {
+    var n = nowParis();
+    rows.forEach(function (row) {
+      var h = JSON.parse(row.getAttribute('data-fs')), today = h[n.d] || [];
+      var st = row.querySelector('[data-fs-status]'), track = row.querySelector('.fs-track');
+      track.innerHTML = '';
+      today.forEach(function (r) {
+        var a = mins(r[0]), b = mins(r[1]), s = document.createElement('span');
+        s.className = 'fs-slot'; s.style.left = ((a - 480) / 600 * 100) + '%'; s.style.width = ((b - a) / 600 * 100) + '%';
+        track.appendChild(s);
+      });
+      if (n.m >= 480 && n.m <= 1080) { var c = document.createElement('i'); c.className = 'fs-now'; c.style.left = ((n.m - 480) / 600 * 100) + '%'; track.appendChild(c); }
+      var open = today.filter(function (r) { return n.m >= mins(r[0]) && n.m < mins(r[1]); })[0];
+      var later = today.filter(function (r) { return mins(r[0]) > n.m; })[0];
+      var msg, state;
+      if (open) { state = 'open'; msg = 'Ouvert · ferme à ' + hh(mins(open[1])); }
+      else if (later) { state = 'soon'; msg = 'Fermé · ouvre à ' + hh(mins(later[0])); }
+      else {
+        state = 'closed'; msg = 'Fermé aujourd’hui';
+        for (var k = 1; k <= 7; k++) { var dd = ((n.d - 1 + k) % 7) + 1; if (h[dd]) { msg = 'Fermé · ouvre ' + (k === 1 ? 'demain' : DAYN[dd % 7]) + ' à ' + hh(mins(h[dd][0][0])); break; } }
+      }
+      st.textContent = msg; row.setAttribute('data-state', state);
+      Array.prototype.forEach.call(row.querySelectorAll('.fs-days li'), function (li) { li.classList.toggle('today', +li.getAttribute('data-day') === n.d); });
+    });
+    var open = rows.filter(function (r) { return r.getAttribute('data-state') === 'open'; }).length;
+    Array.prototype.forEach.call(document.querySelectorAll('.fs-map .pin'), function (p) {
+      var r = rows[+p.getAttribute('data-pin')]; p.setAttribute('class', 'pin ' + (r ? r.getAttribute('data-state') : ''));
+    });
+  }
+  render(); setInterval(render, 60000);
+  rows.forEach(function (r) {
+    var pin = document.querySelector('.fs-map .pin[data-pin="' + r.getAttribute('data-i') + '"]');
+    if (!pin) return;
+    r.addEventListener('mouseenter', function () { pin.classList.add('is-hl'); });
+    r.addEventListener('mouseleave', function () { pin.classList.remove('is-hl'); });
+  });
 })();
 
 /* Lignes de crête du pied de page : tracé à l'apparition */

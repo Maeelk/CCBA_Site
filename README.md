@@ -29,21 +29,21 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
 | Contenus non publiés | Les 3 brouillons ne sont pas repris ; le raccourci « Collecte des déchets » pointe vers « Jours de collecte », la page « Auto-réhabilitation accompagnée » est retirée en attendant arbitrage. |
 | Accessibilité | Lien d’évitement, menus en boutons `aria-expanded`, fil d’Ariane, contrastes AA (le rouge pêche n’est utilisé en texte que dans sa variante foncée), `prefers-reduced-motion` respecté, vidéo avec bouton pause. |
 
-## Direction artistique « Relief » (version 3)
+## Direction artistique (version 3.1)
 
-- **Papier clair, couleur en accents** : fond presque blanc, aucun aplat coloré de fond ; le rouge pêche est réservé au soleil, aux repères et aux états actifs, le cassis aux titres et aux boutons, le marron glacé aux filets et aux courbes de niveau.
-- **Motif signature dessiné en code** : des courbes de niveau (topographie du bassin) calculées en temps réel en WebGL dans l’accueil et les en-têtes de page, avec un soleil rouge pêche qui forme une « colline » autour de laquelle les lignes se resserrent et se réchauffent. Sur l’accueil, les lignes réagissent doucement au pointeur.
-- **Film du territoire en boucle** : le clip de 30 secondes est présenté en bandeau panoramique découpé par une ligne de crête (`assets/img/crete-masque.svg`), le soleil se couche derrière au défilement. Bouton pause/lecture accessible.
-- **Mise en page éditoriale** : grands titres serrés, sections numérotées 01 → 07 sous un filet cassis, actualités en mise en page magazine, agenda à grands chiffres, domaines d’action en index typographique, orientations du projet de territoire en chiffres détourés.
-- **Carte du territoire en ondes** : contour du bassin calculé à partir des 28 communes, entouré d’ondes concentriques qui s’allument tour à tour.
-- **Photos des fiches communes** découpées par la même ligne de crête ; pied de page clair signé par deux lignes de crête tracées à l’apparition.
-- Toujours présents : chiffres clés animés, badge « Accueil ouvert / fermé », fiches communes structurées, carte choroplèthe, sommaire et barre de progression, transitions de page.
+- **Papier clair, couleur en accents** : fond presque blanc, trame de points fixe et discrète ; rouge pêche réservé au soleil et aux repères, cassis pour les titres et boutons.
+- **Soleil réel** : sur l’accueil, le disque rouge pêche est placé à la position réelle du soleil au-dessus d’Aubenas à l’heure de la visite (lever à gauche, coucher à droite, sous la crête la nuit), avec les heures de lever et de coucher du jour. Calcul astronomique dans le navigateur, sans dépendance.
+- **Film du territoire en boucle** dans un bandeau panoramique découpé par une ligne de crête, bouton pause/lecture.
+- **Territoire en trame de points** (`assets/img/territoire-points.svg`) dans les en-têtes de page : un point par maille, taille selon la population de la commune, Aubenas signalée en rouge pêche.
+- **France Services, ouvert aujourd’hui ?** (accueil) : les 5 guichets sur la carte en points, état d’ouverture en direct, frise horaire du jour 8h–18h avec l’heure actuelle, jours d’ouverture de la semaine, adresse et téléphone. Horaires saisis dans `site.py` (constante `FS`) d’après la page France Services : à tenir à jour.
+- **Visuels génératifs** (`cover.py`) : chaque contenu sans image reçoit une composition géométrique unique (tuiles, cercles, rayures) aux couleurs de la charte, calculée à partir de son titre. Elle sert aussi de repli si une photo distante ne se charge pas.
+- Sections éditoriales numérotées, actualités en magazine, agenda à grands chiffres, domaines d’action en index avec sous-rubriques cliquables, carte interactive des communes.
 
-### Sobriété et accessibilité des animations
+### Sobriété
 
-- Animation WebGL limitée à ~20 images/s, suspendue hors écran et onglet masqué, résolution plafonnée ; une seule image fixe si l’usager a demandé de réduire les animations ; motif SVG statique si WebGL est indisponible ou JavaScript désactivé.
-- Film : lecture automatique uniquement sur écran large, hors mode économie de données et hors connexion lente ; sinon, l’usager lance le film lui-même. Pause automatique hors écran.
-- **À prévoir** : le clip actuel pèse 46 Mo (1920 × 500). Une version compressée (≈ 5 Mo, 1280 × 334, H.264) déposée dans `assets/video/` puis référencée dans `site.py` (constante `VIDEO`) allégerait fortement la page et ne dépendrait plus de l’ancien site.
+- Aucune animation continue : seules des apparitions ponctuelles (titres, tracé des crêtes) ; tout est désactivé si l’usager réduit les animations.
+- Film : lecture automatique uniquement sur écran large, hors mode économie de données ; pause hors écran et onglet masqué.
+- **À prévoir** : le clip pèse 46 Mo (1920 × 500). Une version compressée (≈ 5 Mo) déposée dans `assets/video/` et référencée dans `site.py` (constante `VIDEO`) allégerait la page.
 
 ## Charte graphique
 
@@ -54,13 +54,12 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
 ## Compatibilité GitHub Pages (animations, défilements, visuels)
 
 - Aucune dépendance externe, aucun build : CSS et JS vanilla, chemins relatifs.
-- Animations en CSS (apparitions au défilement, tracé des crêtes, ondes de la carte) et en WebGL (courbes de niveau) ; le contenu reste entièrement lisible sans JavaScript.
-- Carrousel « Projet de territoire » en *scroll-snap* natif, sans lecture automatique.
+- Animations en CSS uniquement (apparitions, tracé des crêtes) ; le contenu reste entièrement lisible sans JavaScript.
 - Vidéo d’accueil chargée seulement si l’écran est large et que l’utilisateur n’a demandé ni de réduire les animations ni d’économiser les données.
 - Agenda : les événements passés sont masqués côté navigateur selon la date du jour (le site statique ne « vieillit » pas).
 - Recherche : index JSON statique (`search-index.json`, 986 pages) interrogé côté navigateur.
 - Formulaire de contact : ouvre la messagerie de l’usager (mailto) ; à remplacer par un service de formulaire (ex. formulaire de la plateforme de l’hébergeur final) lors de la mise en production.
-- Images manquantes : chaque visuel a un motif de courbes de niveau en remplacement.
+- Images manquantes : chaque contenu a une composition géométrique générée en remplacement.
 
 ## Limites connues du prototype
 
