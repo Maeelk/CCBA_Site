@@ -1,0 +1,5 @@
+Police de titrage « Merlo Neue » (Typoforge Studio) — licence commerciale.
+Déposez ici les fichiers webfont achetés avec la licence web :
+  MerloNeue-Regular.woff2
+  MerloNeue-Bold.woff2
+Sans ces fichiers, le site utilise Merlo Neue si elle est installée sur le poste, sinon Arial.
