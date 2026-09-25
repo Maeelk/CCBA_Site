@@ -570,3 +570,27 @@
     });
   });
 })();
+
+/* Accueil : état en direct des guichets France Services dans la barre d'accès rapides */
+(function () {
+  var a = document.querySelector('[data-fs-dock]');
+  if (!a) return;
+  var lab = a.querySelector('[data-fs-dock-label]'), all = JSON.parse(a.getAttribute('data-fs-dock'));
+  var DAYN = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var mins = function (s) { var x = s.split(':'); return +x[0] * 60 + +x[1]; };
+  var hh = function (m) { var h = Math.floor(m / 60), r = m % 60; return h + 'h' + (r ? String(r).padStart(2, '0') : ''); };
+  function upd() {
+    var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    var g = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
+    var wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday')), d = wd === 0 ? 7 : wd, m = (+g('hour') % 24) * 60 + +g('minute');
+    var open = all.filter(function (h) { return (h[d] || []).some(function (r) { return m >= mins(r[0]) && m < mins(r[1]); }); }).length;
+    if (open) { lab.textContent = open + (open > 1 ? ' guichets ouverts' : ' guichet ouvert'); a.classList.add('is-open'); return; }
+    a.classList.remove('is-open');
+    for (var k = 0; k <= 7; k++) {
+      var dd = ((d - 1 + k) % 7) + 1, best = null;
+      all.forEach(function (h) { (h[dd] || []).forEach(function (r) { var s = mins(r[0]); if ((k > 0 || s > m) && (best === null || s < best)) best = s; }); });
+      if (best !== null) { lab.textContent = 'Rouvre ' + (k === 0 ? 'à ' : (k === 1 ? 'demain à ' : DAYN[dd % 7] + ' à ')) + hh(best); return; }
+    }
+  }
+  upd(); setInterval(upd, 60000);
+})();

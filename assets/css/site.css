@@ -940,8 +940,8 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .orx-k { font: 700 12px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
 .orx-title { font: 700 clamp(24px, 2.4vw, 34px)/1.05 var(--f-title); color: var(--cassis); letter-spacing: -.035em; margin: 0 0 14px; }
 .orx-x { font-size: 16px; line-height: 1.7; margin: 0 0 20px; max-width: 40em; }
-@media (min-width: 900px) {
-  .orx.is-js { display: flex; height: 500px; border-top: 1px solid var(--cassis); border-bottom: 1px solid var(--line); }
+@media (min-width: 1260px) {
+  .orx.is-js { display: flex; height: 560px; border-top: 1px solid var(--cassis); border-bottom: 1px solid var(--line); }
   .orx.is-js .orx-p { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; border-left: 1px solid var(--line); transition: flex-grow .7s var(--ease), background .4s; }
   .orx.is-js .orx-p:first-child { border-left: 0; }
   .orx.is-js .orx-p.is-open { flex-grow: 7; background: var(--surface); }
@@ -954,9 +954,9 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .orx.is-js .is-open .orx-t { opacity: 0; }
   .orx.is-js .orx-c { position: absolute; top: 0; bottom: 0; left: 64px; width: min(620px, calc(100% - 96px)); padding: 26px 0 26px; opacity: 0; visibility: hidden; transition: opacity .35s, visibility .35s; }
   .orx.is-js .is-open .orx-c { opacity: 1; visibility: visible; transition-delay: .35s; }
-  .orx.is-js .orx-art { height: 150px; }
+  .orx.is-js .orx-art { height: 130px; }
 }
-@media (max-width: 899px) {
+@media (max-width: 1259px) {
   .orx.is-js .orx-p:not(.is-open) .orx-c { display: none; }
   .orx.is-js .orx-b::after { content: "+"; margin-left: auto; color: var(--peche); font: 400 22px/1 var(--f-body); }
   .orx.is-js .is-open .orx-b::after { content: "–"; }
@@ -1055,3 +1055,10 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 }
 .ev-mgroup .ev-date .ev-month, .ev-mgroup .ev-date .ev-year { display: none; }
 .ev-mgroup .ev-day { font-size: clamp(44px, 4vw, 60px); }
+
+/* v3.5 — France Services déplacé sur sa page ; état en direct dans la barre d'accès */
+.page-head + .band { margin-top: 0; }
+.fs-page .fs-intro { margin-top: -12px; }
+.dock-a.is-open .dock-s::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #2E7D4F; box-shadow: 0 0 0 3px rgba(46,125,79,.15); }
+.dock-a.is-open .dock-s { color: #2E7D4F; }
+.or-section.band .orx.is-js .orx-p:not(.is-open) .orx-b:hover { background: var(--paper); }
