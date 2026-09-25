@@ -49,7 +49,7 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
 
 - Rouge pêche `#E14248`, Cassis `#5E3A4F`, Marron glacé `#C6B09C`, fond clair crème.
 - Titres en **Merlo Neue**, textes en **Arial**. Merlo Neue est une police commerciale (Typoforge Studio) : déposer les fichiers web sous licence dans `assets/fonts/` (`MerloNeue-Regular.woff2`, `MerloNeue-Bold.woff2`). En leur absence, le site utilise Merlo Neue si elle est installée sur le poste, sinon Arial.
-- Le logo `assets/img/logo-ccba.svg` est un **logo provisoire** : le remplacer par le logo officiel (même nom de fichier) ainsi que `logo-ccba-blanc.svg` (version pour fond cassis).
+- Logo officiel : `assets/img/logo-ccba-cadre.svg` (fichier d’origine, avec cadre blanc) et `assets/img/logo-ccba.svg` (variante recadrée sans cadre, utilisée dans l’en-tête, le pied de page et la page 404).
 
 ## Compatibilité GitHub Pages (animations, défilements, visuels)
 
