@@ -382,7 +382,8 @@
 })();
 
 /* ==========================================================================
-   France Services : état d'ouverture en direct + frise horaire du jour (8h–18h)
+   France Services : état d'ouverture en direct + frise horaire (8h–18h).
+   Les pastilles des jours sont cliquables : elles affichent les horaires d'un autre jour.
    ========================================================================== */
 (function () {
   var rows = Array.prototype.slice.call(document.querySelectorAll('[data-fs]'));
@@ -390,48 +391,76 @@
   var DAYN = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
   var mins = function (s) { var a = s.split(':'); return +a[0] * 60 + +a[1]; };
   var hh = function (m) { var h = Math.floor(m / 60), r = m % 60; return h + 'h' + (r ? String(r).padStart(2, '0') : ''); };
+  var cap = function (s) { return s.charAt(0).toUpperCase() + s.slice(1); };
   function nowParis() {
     var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
     var g = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
     var wd = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday'));
     return { d: wd === 0 ? 7 : wd, m: (+g('hour') % 24) * 60 + +g('minute') };
   }
-  function render() {
-    var n = nowParis();
-    rows.forEach(function (row) {
-      var h = JSON.parse(row.getAttribute('data-fs')), today = h[n.d] || [];
-      var st = row.querySelector('[data-fs-status]'), track = row.querySelector('.fs-track');
-      track.innerHTML = '';
-      today.forEach(function (r) {
-        var a = mins(r[0]), b = mins(r[1]), s = document.createElement('span');
-        s.className = 'fs-slot'; s.style.left = ((a - 480) / 600 * 100) + '%'; s.style.width = ((b - a) / 600 * 100) + '%';
-        track.appendChild(s);
-      });
-      if (n.m >= 480 && n.m <= 1080) { var c = document.createElement('i'); c.className = 'fs-now'; c.style.left = ((n.m - 480) / 600 * 100) + '%'; track.appendChild(c); }
-      var open = today.filter(function (r) { return n.m >= mins(r[0]) && n.m < mins(r[1]); })[0];
-      var later = today.filter(function (r) { return mins(r[0]) > n.m; })[0];
-      var msg, state;
+  function draw(row, n) {
+    var h = JSON.parse(row.getAttribute('data-fs')), day = row._day || n.d, live = day === n.d, list = h[day] || [];
+    var st = row.querySelector('[data-fs-status]'), track = row.querySelector('.fs-track');
+    track.innerHTML = '';
+    list.forEach(function (r) {
+      var a = mins(r[0]), b = mins(r[1]), s = document.createElement('span');
+      s.className = 'fs-slot'; s.style.left = ((a - 480) / 600 * 100) + '%'; s.style.width = ((b - a) / 600 * 100) + '%';
+      track.appendChild(s);
+    });
+    if (live && n.m >= 480 && n.m <= 1080) { var c = document.createElement('i'); c.className = 'fs-now'; c.style.left = ((n.m - 480) / 600 * 100) + '%'; track.appendChild(c); }
+    var msg, state;
+    if (!live) {
+      state = 'day';
+      msg = list.length ? cap(DAYN[day % 7]) + ' : ' + list.map(function (r) { return hh(mins(r[0])) + '–' + hh(mins(r[1])); }).join(', ') : 'Fermé le ' + DAYN[day % 7];
+    } else {
+      var open = list.filter(function (r) { return n.m >= mins(r[0]) && n.m < mins(r[1]); })[0];
+      var later = list.filter(function (r) { return mins(r[0]) > n.m; })[0];
       if (open) { state = 'open'; msg = 'Ouvert · ferme à ' + hh(mins(open[1])); }
       else if (later) { state = 'soon'; msg = 'Fermé · ouvre à ' + hh(mins(later[0])); }
       else {
         state = 'closed'; msg = 'Fermé aujourd’hui';
         for (var k = 1; k <= 7; k++) { var dd = ((n.d - 1 + k) % 7) + 1; if (h[dd]) { msg = 'Fermé · ouvre ' + (k === 1 ? 'demain' : DAYN[dd % 7]) + ' à ' + hh(mins(h[dd][0][0])); break; } }
       }
-      st.textContent = msg; row.setAttribute('data-state', state);
-      Array.prototype.forEach.call(row.querySelectorAll('.fs-days li'), function (li) { li.classList.toggle('today', +li.getAttribute('data-day') === n.d); });
-    });
-    var open = rows.filter(function (r) { return r.getAttribute('data-state') === 'open'; }).length;
-    Array.prototype.forEach.call(document.querySelectorAll('.fs-map .pin'), function (p) {
-      var r = rows[+p.getAttribute('data-pin')]; p.setAttribute('class', 'pin ' + (r ? r.getAttribute('data-state') : ''));
+    }
+    st.textContent = msg;
+    if (!live) { var bk = document.createElement('button'); bk.type = 'button'; bk.className = 'fs-back'; bk.textContent = 'Aujourd’hui'; bk.addEventListener('click', function () { select(row, n.d, true); }); st.appendChild(bk); }
+    row.setAttribute('data-state', state);
+    row.querySelectorAll('.fs-days button').forEach(function (b) {
+      var d = +b.getAttribute('data-day'), on = d === day;
+      b.classList.toggle('today', d === n.d);
+      b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1;
     });
   }
-  render(); setInterval(render, 60000);
-  rows.forEach(function (r) {
-    var pin = document.querySelector('.fs-map .pin[data-pin="' + r.getAttribute('data-i') + '"]');
-    if (!pin) return;
-    r.addEventListener('mouseenter', function () { pin.classList.add('is-hl'); });
-    r.addEventListener('mouseleave', function () { pin.classList.remove('is-hl'); });
+  function select(row, d, focus) {
+    var n = nowParis(); row._day = d; draw(row, n); pins();
+    if (focus) { var b = row.querySelector('.fs-days button[data-day="' + d + '"]'); b && b.focus(); }
+  }
+  function pins() {
+    var n = nowParis();
+    Array.prototype.forEach.call(document.querySelectorAll('.fs-map .pin'), function (p) {
+      var r = rows[+p.getAttribute('data-pin')], s = r ? r.getAttribute('data-state') : '';
+      p.setAttribute('class', 'pin ' + (s === 'open' ? 'open' : '') + (p._hl ? ' is-hl' : ''));
+    });
+  }
+  function render() { var n = nowParis(); rows.forEach(function (r) { draw(r, n); }); pins(); }
+  rows.forEach(function (row) {
+    var btns = Array.prototype.slice.call(row.querySelectorAll('.fs-days button'));
+    btns.forEach(function (b, i) {
+      b.addEventListener('click', function () { select(row, +b.getAttribute('data-day')); });
+      b.addEventListener('keydown', function (e) {
+        var k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+        if (k) { e.preventDefault(); select(row, +btns[(i + k + 7) % 7].getAttribute('data-day'), true); }
+        if (e.key === 'Home') { e.preventDefault(); select(row, 1, true); }
+        if (e.key === 'End') { e.preventDefault(); select(row, 7, true); }
+      });
+    });
+    var pin = document.querySelector('.fs-map .pin[data-pin="' + row.getAttribute('data-i') + '"]');
+    if (pin) {
+      row.addEventListener('mouseenter', function () { pin._hl = true; pins(); });
+      row.addEventListener('mouseleave', function () { pin._hl = false; pins(); });
+    }
   });
+  render(); setInterval(render, 60000);
 })();
 
 /* Lignes de crête du pied de page : tracé à l'apparition */
@@ -511,7 +540,7 @@
   function show(a) {
     var pop = parseInt(a.getAttribute('data-pop') || '0', 10), sh = total ? pop / total * 100 : 0;
     q('[data-tc-name]').textContent = a.getAttribute('data-name');
-    q('[data-tc-name2]').textContent = a.getAttribute('data-name');
+    var nm = a.getAttribute('data-name'); q('[data-tc-name2]').textContent = (/^[AEIOUYÂÉÈÊÎÔÛ]/i.test(nm) ? 'd’' : 'de ') + nm;
     q('[data-tc-pop]').textContent = pop ? fmt(pop) : '—';
     q('[data-tc-share]').textContent = pop ? sh.toFixed(1).replace('.', ',') + ' %' : '—';
     q('[data-tc-maire]').textContent = a.getAttribute('data-maire') || '—';
@@ -520,4 +549,24 @@
     card.classList.remove('is-swap'); void card.offsetWidth; card.classList.add('is-swap');
   }
   polys.forEach(function (a) { a.addEventListener('mouseenter', function () { show(a); }); a.addEventListener('focus', function () { show(a); }); });
+})();
+
+/* Tableaux longs (ex. jours de collecte) : filtre « trouver ma commune » */
+(function () {
+  var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' '); };
+  Array.prototype.forEach.call(document.querySelectorAll('.prose .table-wrap'), function (wrap, k) {
+    var trs = Array.prototype.slice.call(wrap.querySelectorAll('tr'));
+    var hasTh = !!wrap.querySelector('th');
+    var body = hasTh ? trs.filter(function (r) { return !r.querySelector('th'); }) : trs.slice(1);
+    if (body.length < 12) return;
+    var box = document.createElement('div'); box.className = 'table-filter';
+    box.innerHTML = '<label for="tf-' + k + '">Filtrer le tableau</label><div class="filter-input"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="tf-' + k + '" type="search" placeholder="Ex. : Vesseaux, lundi…" autocomplete="off"></div><p class="filter-count" aria-live="polite"></p>';
+    wrap.parentNode.insertBefore(box, wrap);
+    var inp = box.querySelector('input'), cnt = box.querySelector('.filter-count');
+    inp.addEventListener('input', function () {
+      var q = norm(inp.value).trim(), n = 0;
+      body.forEach(function (r) { var ok = !q || norm(r.textContent).indexOf(q) > -1; r.hidden = !ok; if (ok) n++; });
+      cnt.textContent = q ? n + (n > 1 ? ' lignes' : ' ligne') : '';
+    });
+  });
 })();
