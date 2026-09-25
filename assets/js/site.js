@@ -442,3 +442,36 @@
   var o = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { c.classList.add('is-in'); o.disconnect(); } }); }, { threshold: 0.4 });
   o.observe(c);
 })();
+
+/* Projet de territoire : rosace + onglets accessibles (flèches, Début, Fin) */
+(function () {
+  var root = document.querySelector('[data-or-root]');
+  if (!root) return;
+  var tabs = Array.prototype.slice.call(root.querySelectorAll('[role="tab"]'));
+  var panels = Array.prototype.slice.call(root.querySelectorAll('[data-orp]'));
+  var segs = Array.prototype.slice.call(root.querySelectorAll('.seg'));
+  var big = root.querySelector('[data-or-big]');
+  root.classList.add('is-js');
+  function select(i, focus) {
+    tabs.forEach(function (t, k) { var on = k === i; t.setAttribute('aria-selected', String(on)); t.tabIndex = on ? 0 : -1; });
+    panels.forEach(function (p, k) { p.hidden = k !== i; });
+    segs.forEach(function (s, k) { s.classList.toggle('is-on', k === i); });
+    if (big) big.textContent = String(i + 1).padStart(2, '0');
+    if (focus) tabs[i].focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { select(i); });
+    t.addEventListener('keydown', function (e) {
+      var k = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+      if (k) { e.preventDefault(); select((i + k + tabs.length) % tabs.length, true); }
+      if (e.key === 'Home') { e.preventDefault(); select(0, true); }
+      if (e.key === 'End') { e.preventDefault(); select(tabs.length - 1, true); }
+    });
+  });
+  segs.forEach(function (s, i) {
+    s.addEventListener('click', function () { select(i); });
+    s.addEventListener('mouseenter', function () { s.classList.add('is-hover'); });
+    s.addEventListener('mouseleave', function () { s.classList.remove('is-hover'); });
+  });
+  select(0);
+})();
