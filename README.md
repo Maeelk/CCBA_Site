@@ -37,7 +37,10 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
 - **Territoire en trame de points** (`assets/img/territoire-points.svg`) dans les en-têtes de page : un point par maille, taille selon la population de la commune, Aubenas signalée en rouge pêche.
 - **France Services, ouvert aujourd’hui ?** (accueil) : les 5 guichets sur la carte en points, état d’ouverture en direct, frise horaire du jour 8h–18h avec l’heure actuelle, jours d’ouverture de la semaine, adresse et téléphone. Horaires saisis dans `site.py` (constante `FS`) d’après la page France Services : à tenir à jour.
 - **Visuels génératifs** (`cover.py`) : chaque contenu sans image reçoit une composition géométrique unique (tuiles, cercles, rayures) aux couleurs de la charte, calculée à partir de son titre. Elle sert aussi de repli si une photo distante ne se charge pas.
-- Sections éditoriales numérotées, actualités en magazine, agenda à grands chiffres, domaines d’action en index avec sous-rubriques cliquables, carte interactive des communes.
+- **Barre d’accès rapides** posée sur le bas du film : collecte, urbanisme, France Services, marchés publics, communes, contact.
+- **Les 7 orientations du projet de territoire** en panneaux dépliants (un ouvert à la fois, titres verticaux, visuel génératif, texte complet) ; accordéon sur mobile ; navigation au clavier par les flèches.
+- **Territoire** : chiffres clés (28 communes, habitants, 75 élus) et **fiche express** de la commune survolée ou parcourue au clavier sur la carte (population, part du bassin, maire, lien vers la fiche).
+- Page rythmée : en-têtes de section compacts, bande légèrement teintée pour France Services, actualités en magazine, agenda à grands chiffres, domaines d’action en index avec sous-rubriques cliquables.
 
 ### Sobriété
 

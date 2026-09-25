@@ -376,7 +376,7 @@
     band.style.setProperty('--sun-x', (xs * 100).toFixed(2) + '%');
     band.style.setProperty('--sun-y', ((cy - lift) * 100).toFixed(2) + '%');
     band.classList.toggle('is-night', !day);
-    if (cap) { cap.hidden = false; cap.textContent = 'Soleil sur Aubenas · lever ' + fmt(t.rise) + ' · coucher ' + fmt(t.set); }
+    if (cap) { cap.hidden = false; cap.innerHTML = '<span class="sc-l">Soleil sur Aubenas · </span>lever ' + fmt(t.rise) + ' · coucher ' + fmt(t.set); }
   }
   place(); setInterval(place, 60000);
 })();
@@ -474,4 +474,50 @@
     s.addEventListener('mouseleave', function () { s.classList.remove('is-hover'); });
   });
   select(0);
+})();
+
+/* Orientations : panneaux dépliants (un seul ouvert à la fois) */
+(function () {
+  var root = document.querySelector('[data-orx]');
+  if (!root) return;
+  var ps = Array.prototype.slice.call(root.querySelectorAll('.orx-p'));
+  root.classList.add('is-js');
+  function open(i, focus) {
+    ps.forEach(function (p, k) {
+      var on = k === i; p.classList.toggle('is-open', on);
+      p.querySelector('.orx-b').setAttribute('aria-expanded', String(on));
+    });
+    if (focus) ps[i].querySelector('.orx-b').focus();
+  }
+  ps.forEach(function (p, i) {
+    var b = p.querySelector('.orx-b');
+    b.addEventListener('click', function () { open(i); });
+    b.addEventListener('keydown', function (e) {
+      var k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      if (k) { e.preventDefault(); open((i + k + ps.length) % ps.length, true); }
+    });
+  });
+})();
+
+/* Territoire : fiche express de la commune survolée ou focalisée */
+(function () {
+  var card = document.querySelector('[data-tc]');
+  if (!card) return;
+  var sec = card.closest('section'), total = 0;
+  var polys = Array.prototype.slice.call(sec.querySelectorAll('.m-commune'));
+  polys.forEach(function (a) { total += parseInt(a.getAttribute('data-pop') || '0', 10); });
+  var q = function (s) { return card.querySelector(s); };
+  var fmt = function (n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); };
+  function show(a) {
+    var pop = parseInt(a.getAttribute('data-pop') || '0', 10), sh = total ? pop / total * 100 : 0;
+    q('[data-tc-name]').textContent = a.getAttribute('data-name');
+    q('[data-tc-name2]').textContent = a.getAttribute('data-name');
+    q('[data-tc-pop]').textContent = pop ? fmt(pop) : '—';
+    q('[data-tc-share]').textContent = pop ? sh.toFixed(1).replace('.', ',') + ' %' : '—';
+    q('[data-tc-maire]').textContent = a.getAttribute('data-maire') || '—';
+    q('[data-tc-bar]').style.width = Math.max(1, sh) + '%';
+    q('[data-tc-link]').setAttribute('href', a.getAttribute('href'));
+    card.classList.remove('is-swap'); void card.offsetWidth; card.classList.add('is-swap');
+  }
+  polys.forEach(function (a) { a.addEventListener('mouseenter', function () { show(a); }); a.addEventListener('focus', function () { show(a); }); });
 })();
