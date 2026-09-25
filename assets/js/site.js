@@ -117,7 +117,14 @@
     video.addEventListener('error', function () { band.classList.remove('is-live'); video.remove(); vbtn.remove(); });
     vbtn.hidden = false;
     vbtn.addEventListener('click', function () { if (wanted) { video.pause(); setState(false); } else play(); });
-    if (!reduce && !light && wide) play(); else setState(false);
+    if (!reduce && !light && wide) {
+      if (document.hidden) {   // onglet ouvert en arrière-plan : on attend qu'il soit affiché
+        setState(false);
+        var onVis = function () { if (!document.hidden) { document.removeEventListener('visibilitychange', onVis); play(); } };
+        document.addEventListener('visibilitychange', onVis);
+      } else play();
+    } else setState(false);
+    document.addEventListener('visibilitychange', function () { if (!loaded) return; if (document.hidden) video.pause(); else if (wanted) { var p = video.play(); p && p.catch && p.catch(function () {}); } });
     if ('IntersectionObserver' in window) {
       new IntersectionObserver(function (es) {
         es.forEach(function (e) { if (!loaded) return; if (!e.isIntersecting) video.pause(); else if (wanted) { var p = video.play(); p && p.catch && p.catch(function () {}); } });
