@@ -1181,9 +1181,7 @@ html.splash-shown .hero-sun { animation: none; }
 .sp-c { width: min(52vw, 760px); }
 .sp-verb { position: absolute; left: 0; top: 0; white-space: nowrap; }
 .sp-verb.is-final { color: var(--peche); }
-.sp-logo { position: absolute; left: 0; top: 0; margin: 0; text-align: center; pointer-events: none; will-change: transform; }
-.sp-logo img { display: block; width: 100%; height: auto; opacity: 0; }
-.sp-tag { margin: clamp(18px, 2.4vw, 30px) 0 0; font: 700 clamp(19px, 2vw, 30px)/1.15 var(--f-title); letter-spacing: -.02em; color: var(--cassis); opacity: 0; }
+.sp-tag { position: absolute; left: 6vw; right: 6vw; top: 70%; margin: 0; text-align: center; font: 700 clamp(19px, 2vw, 30px)/1.15 var(--f-title); letter-spacing: -.02em; color: var(--cassis); opacity: 0; }
 .sp-ui { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(16px, 3vw, 36px) clamp(16px, 3vw, 32px); pointer-events: none; }
 .sp-ui button { pointer-events: auto; display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 8px 0 18px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255,255,255,.84); color: var(--cassis); font: 700 14px var(--f-body); cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: border-color .2s, background .2s, color .2s; }
 .sp-ui button:hover { border-color: var(--cassis); background: #fff; }
