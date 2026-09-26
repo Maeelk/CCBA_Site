@@ -332,7 +332,7 @@
     var get = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
     var wd = get('weekday'), m = parseInt(get('hour'), 10) * 60 + parseInt(get('minute'), 10);
     var weekday = !/sam|dim/i.test(wd);
-    var open = weekday && ((m >= 510 && m < 720) || (m >= 840 && m < 1050));
+    var open = weekday && ((m >= 540 && m < 720) || (m >= 840 && m < 1050));
     b.classList.toggle('is-open', open);
     b.querySelector('[data-status-label]').textContent = open ? 'Accueil ouvert' : 'Accueil fermé';
   } catch (e) {}
@@ -382,7 +382,9 @@
 })();
 
 /* ==========================================================================
-   France Services : état d'ouverture en direct + frise horaire (8h–18h).
+   Horaires (France Services, piscine, médiathèque, accueils…) : état d'ouverture
+   en direct + frise horaire. La frise s'adapte à l'amplitude de chaque lieu via
+   data-start/data-end (en minutes depuis minuit, 8h–18h par défaut).
    Les pastilles des jours sont cliquables : elles affichent les horaires d'un autre jour.
    ========================================================================== */
 (function () {
@@ -400,14 +402,17 @@
   }
   function draw(row, n) {
     var h = JSON.parse(row.getAttribute('data-fs')), day = row._day || n.d, live = day === n.d, list = h[day] || [];
+    var s0 = +row.getAttribute('data-start'), e0 = +row.getAttribute('data-end');
+    if (!isFinite(s0)) s0 = 480; if (!isFinite(e0) || e0 <= s0) e0 = 1080;
+    var span = e0 - s0;
     var st = row.querySelector('[data-fs-status]'), track = row.querySelector('.fs-track');
     track.innerHTML = '';
     list.forEach(function (r) {
       var a = mins(r[0]), b = mins(r[1]), s = document.createElement('span');
-      s.className = 'fs-slot'; s.style.left = ((a - 480) / 600 * 100) + '%'; s.style.width = ((b - a) / 600 * 100) + '%';
+      s.className = 'fs-slot'; s.style.left = ((a - s0) / span * 100) + '%'; s.style.width = ((b - a) / span * 100) + '%';
       track.appendChild(s);
     });
-    if (live && n.m >= 480 && n.m <= 1080) { var c = document.createElement('i'); c.className = 'fs-now'; c.style.left = ((n.m - 480) / 600 * 100) + '%'; track.appendChild(c); }
+    if (live && n.m >= s0 && n.m <= e0) { var c = document.createElement('i'); c.className = 'fs-now'; c.style.left = ((n.m - s0) / span * 100) + '%'; track.appendChild(c); }
     var msg, state;
     if (!live) {
       state = 'day';

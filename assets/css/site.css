@@ -392,6 +392,14 @@ main:focus { outline: none; }
 .fs-addr a { font-weight: 700; text-decoration: none; }
 @media (max-width: 1024px) { .fs { grid-template-columns: 1fr; } .fs-art { position: static; max-width: 260px; margin: 0 auto; } .fs-row { grid-template-columns: 36px minmax(0, 1fr); } .fs-side { grid-column: 2; } }
 
+/* ---------- Horaires génériques (piscine, médiathèque, accueils…) sans carte ---------- */
+.hours-block { max-width: 720px; }
+.hours-block .fs-list { border-top: 0; }
+.fs-row.fs-solo { grid-template-columns: minmax(0, 1fr) minmax(200px, 260px); }
+.fs-row.fs-solo:last-child { border-bottom: 0; padding-bottom: 4px; }
+.fs-note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; padding-left: 14px; border-left: 2px solid var(--line-2); }
+@media (max-width: 1024px) { .fs-row.fs-solo { grid-template-columns: minmax(0, 1fr); } .fs-row.fs-solo .fs-side { grid-column: 1; } }
+
 /* ---------- Territoire : carte + ondes concentriques ---------- */
 .territory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 110px); align-items: center; }
 .territory-map { position: relative; }
