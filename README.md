@@ -60,6 +60,18 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
   - **Accueil du siège de la CCBA** (page « Organisation et pôles » et page Contact) : horaires officiels du lundi au vendredi, 9h–12h et 14h–17h30 (la valeur précédente, 8h30, était erronée et a été corrigée partout — accueil, en-tête et page Contact). Les autres pôles (technique, aménagement) n’ont pas d’horaires de guichet publiés : leurs adresses restent en simple texte.
   - Ces trois lieux n’ayant qu’une seule adresse, le composant s’affiche sans la carte en points (variante à une seule ligne, sans numéro de guichet).
 
+## Relief et profondeur (version 3.10)
+
+Des effets 3D discrets, sur tout le site (accueil et sous-rubriques), sans bibliothèque ni image :
+
+- **Carte des 28 communes en relief** (accueil, page « Nos 28 communes », encart « Situer… » des 28 fiches communes) : chaque commune devient un prisme dont la **hauteur suit sa population**. La projection axonométrique est calculée en JavaScript *dans le SVG* : les communes restent de vrais liens (clavier, lecteur d’écran, infobulle, fiche express, coloration par population). Les prismes montent en vague depuis Aubenas quand la carte apparaît ; la commune survolée, focalisée au clavier ou survolée dans la liste alphabétique se soulève ; la commune de la fiche est déjà levée, en cassis. Les ondes du territoire sont couchées dans le même plan ; la carte s’incline légèrement sous le pointeur.
+- **Carte France Services** : la trame du territoire est couchée en perspective, les 5 guichets deviennent des épingles debout qui tombent en place à l’apparition (vertes quand le guichet est ouvert).
+- **En-têtes de page** : la vignette du territoire se couche en perspective à l’arrivée sur la page et suit le pointeur.
+- **Menus** : le méga-menu se déplie depuis le haut, ses colonnes se redressent l’une après l’autre ; la flèche bascule en 3D. Sur mobile, le tiroir s’ouvre comme un volet et ses rubriques pivotent en cascade ; les sous-menus se déplient.
+- **Sections** : les blocs se redressent en apparaissant au défilement, les titres de section basculent vers le lecteur ; le contenu des orientations pivote à l’ouverture.
+- **Cartes et tuiles** (actualités, agenda, rubriques, accès rapides, sites associés) : elles s’inclinent sous le pointeur, un plateau se soulève dessous avec un reflet rouge pêche, image et titre avancent vers le lecteur (parallaxe).
+- **Sobriété** : pas d’animation continue ; l’inclinaison au pointeur n’existe qu’à la souris ; tout est désactivé si l’usager demande de réduire les animations (la carte reste en relief, figée).
+
 ## Écran d’accueil animé « Un trait de lumière » (version 3.9)
 
 Une introduction de **10 secondes** présente la CCBA à l’ouverture du site. Tout est dessiné en code, **logo compris** : aucune vidéo, aucune image. Le fil conducteur est le trait du logo — ligne monoligne à bouts ronds et diagonale rouge pêche à 45° — qui dessine toute l’animation jusqu’au logo lui-même.

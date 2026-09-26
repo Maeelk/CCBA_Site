@@ -78,7 +78,8 @@
   window.addEventListener('scroll', function () { if (!ticking) { requestAnimationFrame(onScroll); ticking = true; } }, { passive: true });
   onScroll();
 
-  /* ---------- Apparition au défilement ---------- */
+  /* ---------- Apparition au défilement (en 3D : les blocs se redressent, les titres de section basculent) ---------- */
+  $$('.sec-head, .h-sec').forEach(function (el) { if (!el.closest('.reveal')) el.classList.add('reveal', 'reveal-flip'); });
   var reveals = $$('.reveal');
   if ('IntersectionObserver' in window && !reduce) {
     var io = new IntersectionObserver(function (entries) {
@@ -145,16 +146,17 @@
         tip.style.left = (poly.left - box.left + poly.width / 2) + 'px';
         tip.style.top = (poly.top - box.top + poly.height / 2) + 'px';
         tip.classList.add('is-on');
-        $$('#liste-communes a').forEach(function (l) { l.classList.toggle('is-hl', l.textContent === name); });
+        $$('#liste-communes a').forEach(function (l) { var c = l.querySelector('.cn'); l.classList.toggle('is-hl', (c ? c.textContent : l.textContent) === name); });
       }
       function hide() { tip && tip.classList.remove('is-on'); $$('#liste-communes a.is-hl').forEach(function (l) { l.classList.remove('is-hl'); }); }
       a.addEventListener('mouseenter', show); a.addEventListener('focus', show);
       a.addEventListener('mouseleave', hide); a.addEventListener('blur', hide);
     });
   });
-  $$('#liste-communes a').forEach(function (l) {
-    l.addEventListener('mouseenter', function () { var m = $('.communes-map .m-commune[data-name="' + l.textContent.replace(/"/g, '\\"') + '"] polygon'); if (m) m.style.fill = 'var(--peche)'; });
-    l.addEventListener('mouseleave', function () { $$('.communes-map polygon').forEach(function (p) { p.style.fill = ''; }); });
+  $$('#liste-communes a').forEach(function (l) {                // la liste soulève la commune sur la carte
+    var find = function () { return $('.communes-map .m-commune[data-name="' + l.querySelector('.cn').textContent.replace(/"/g, '\\"') + '"]'); };
+    l.addEventListener('mouseenter', function () { var m = find(); if (m) { m.classList.add('is-hl'); m.dispatchEvent(new Event('ccba:lift')); } });
+    l.addEventListener('mouseleave', function () { var m = find(); if (m) { m.classList.remove('is-hl'); m.dispatchEvent(new Event('ccba:drop')); } });
   });
 
   /* ---------- Sélecteurs « aller à » ---------- */
@@ -907,4 +909,185 @@
   });
   stop.addEventListener('click', reset);
   window.addEventListener('pagehide', function () { speechSynthesis.cancel(); });
+})();
+
+
+/* ==========================================================================
+   Carte des communes en relief : chaque commune devient un prisme dont la
+   hauteur suit la population. Projection axonométrique calculée ici, dans le
+   SVG lui-même : les communes restent des liens (clavier, lecteur d'écran).
+   Les prismes montent en vague depuis Aubenas quand la carte apparaît ; une
+   commune survolée ou focalisée se soulève.
+   ========================================================================== */
+var CCBA3D = (function () {
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fine = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  var NS = 'http://www.w3.org/2000/svg';
+  var AZ = -14 * Math.PI / 180, TI = 44 * Math.PI / 180, CX = 110.5, CY = 187.5;
+  var ca = Math.cos(AZ), sa = Math.sin(AZ), ct = Math.cos(TI), st = Math.sin(TI);
+  function P(x, y, z) { var X = x - CX, Y = y - CY, yr = sa * X + ca * Y; return [ca * X - sa * Y, yr * ct - z * st, yr]; }
+  var MAT = [ca, sa * ct, -sa, ca * ct, -ca * CX + sa * CY, -ct * (sa * CX + ca * CY)].map(function (v) { return v.toFixed(5); }).join(' ');
+  function f2(p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }
+  function back(x) { var c = 1.7; return x >= 1 ? 1 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); }
+  function bounds(list) { var b = [1e9, 1e9, -1e9, -1e9]; list.forEach(function (p) { b[0] = Math.min(b[0], p[0]); b[1] = Math.min(b[1], p[1]); b[2] = Math.max(b[2], p[0]); b[3] = Math.max(b[3], p[1]); }); return b; }
+  function parallax(zone, target) {                      // légère inclinaison de l'ensemble sous le pointeur
+    if (!fine || reduce || !zone) return;
+    var raf = 0, px = 0, py = 0;
+    zone.addEventListener('pointermove', function (e) {
+      var r = zone.getBoundingClientRect(); px = (e.clientX - r.left) / r.width - .5; py = (e.clientY - r.top) / r.height - .5;
+      if (!raf) raf = requestAnimationFrame(function () { raf = 0; target.style.setProperty('--mrx', (-py * 7).toFixed(2) + 'deg'); target.style.setProperty('--mry', (px * 9).toFixed(2) + 'deg'); });
+    });
+    zone.addEventListener('pointerleave', function () { target.style.setProperty('--mrx', '0deg'); target.style.setProperty('--mry', '0deg'); });
+  }
+
+  function prisms(svg) {
+    var links = Array.prototype.slice.call(svg.querySelectorAll('a.m-commune'));
+    if (!links.length) return;
+    var maxPop = Math.max.apply(null, links.map(function (a) { return +a.getAttribute('data-pop') || 0; })) || 1;
+    var C = links.map(function (a, i) {
+      a.setAttribute('data-tint', i % 3);
+      var poly = a.querySelector('polygon'), raw = poly.getAttribute('points').trim().split(/[\s,]+/).map(Number), pts = [], j;
+      for (j = 0; j + 1 < raw.length; j += 2) pts.push([raw[j], raw[j + 1]]);
+      var area = 0, gx = 0, gy = 0;
+      for (j = 0; j < pts.length; j++) { var p = pts[j], q = pts[(j + 1) % pts.length]; area += p[0] * q[1] - q[0] * p[1]; gx += p[0]; gy += p[1]; }
+      var walls = [1, 2, 3].map(function (k) { var w = document.createElementNS(NS, 'path'); w.setAttribute('class', 'm-wall w' + k); w.setAttribute('aria-hidden', 'true'); a.insertBefore(w, poly); return w; });
+      var cur = a.classList.contains('is-current');
+      return { a: a, poly: poly, pts: pts, sgn: area > 0 ? 1 : -1, walls: walls, cx: gx / pts.length, cy: gy / pts.length,
+        H: 2.5 + 20 * Math.sqrt((+a.getAttribute('data-pop') || 0) / maxPop), h: 0, base: cur ? 9 : 0, lift: cur ? 9 : 0, liftT: cur ? 9 : 0, t0: Infinity };
+    });
+    function draw(o) {
+      var z = o.h + o.lift, n = o.pts.length, top = o.pts.map(function (p) { return P(p[0], p[1], z); }), d = ['', '', ''];
+      o.poly.setAttribute('points', top.map(f2).join(' '));
+      if (z > .15) for (var j = 0; j < n; j++) {
+        var p = o.pts[j], q = o.pts[(j + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
+        var nx = o.sgn * dy / L, ny = -o.sgn * dx / L;
+        if (sa * nx + ca * ny <= 0) continue;                // face tournée vers l'arrière : invisible
+        var nxr = ca * nx - sa * ny, k = nxr < -.3 ? 0 : nxr > .3 ? 2 : 1;
+        d[k] += 'M' + f2(P(p[0], p[1], 0)) + 'L' + f2(P(q[0], q[1], 0)) + 'L' + f2(top[(j + 1) % n]) + 'L' + f2(top[j]) + 'Z';
+      }
+      o.walls.forEach(function (w, k) { w.setAttribute('d', d[k]); });
+    }
+    /* ordre de peinture : du fond vers l'avant */
+    var par = links[0].parentNode;
+    if (par.getAttribute('filter')) par.removeAttribute('filter');
+    C.slice().sort(function (a, b) { return P(a.cx, a.cy, 0)[2] - P(b.cx, b.cy, 0)[2]; }).forEach(function (o) { par.appendChild(o.a); });
+    /* ondes du territoire : couchées dans le même plan */
+    var art = svg.closest('.terr-art'), rs = art && art.querySelector('.terr-rings'), extra = [];
+    if (rs) {
+      var g = document.createElementNS(NS, 'g');
+      g.setAttribute('class', 'm-rings'); g.setAttribute('transform', 'matrix(' + MAT + ')'); g.setAttribute('aria-hidden', 'true');
+      Array.prototype.slice.call(rs.querySelectorAll('path')).forEach(function (r, ri) {
+        if (ri > 3) { r.remove(); return; }                // en relief, on garde les ondes proches
+        try { var bb = r.getBBox(); [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]].forEach(function (c) { extra.push(P(c[0], c[1], 0)); }); } catch (e) {}
+        g.appendChild(r);
+      });
+      svg.insertBefore(g, svg.firstChild);
+      rs.style.display = 'none';
+      art.classList.add('is-3d');
+    }
+    var pts = extra.slice();
+    C.forEach(function (o) { o.pts.forEach(function (p) { pts.push(P(p[0], p[1], 0)); pts.push(P(p[0], p[1], o.H + 16)); }); });
+    var b = bounds(pts), m = 6;
+    svg.setAttribute('viewBox', [b[0] - m, b[1] - m, b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m].map(function (v) { return v.toFixed(1); }).join(' '));
+    svg.classList.add('is-3d');
+    /* animation */
+    var aub = C.filter(function (o) { return o.a.getAttribute('data-name') === 'Aubenas'; })[0] || C[0], dmax = 1;
+    C.forEach(function (o) { o.dist = Math.hypot(o.cx - aub.cx, o.cy - aub.cy); dmax = Math.max(dmax, o.dist); });
+    var running = false;
+    function loop(now) {
+      var busy = false;
+      C.forEach(function (o) {
+        var ch = false;
+        if (o.h !== o.H && now >= o.t0) { var u = Math.min(1, (now - o.t0) / 950); o.h = o.H * back(u); if (u >= 1) o.h = o.H; ch = true; }
+        if (o.t0 === Infinity) busy = busy || false; else if (o.h !== o.H) busy = true;
+        if (Math.abs(o.liftT - o.lift) > .03) { o.lift += (o.liftT - o.lift) * .2; ch = true; busy = true; } else if (o.lift !== o.liftT) { o.lift = o.liftT; ch = true; }
+        if (ch) draw(o);
+      });
+      running = busy;
+      if (busy) requestAnimationFrame(loop);
+    }
+    function kick() { if (!running) { running = true; requestAnimationFrame(loop); } }
+    C.forEach(function (o) {
+      var up = function () { o.liftT = o.base + 6; kick(); }, down = function () { o.liftT = o.base; kick(); };
+      o.a.addEventListener('mouseenter', up); o.a.addEventListener('focus', up); o.a.addEventListener('ccba:lift', up);
+      o.a.addEventListener('mouseleave', down); o.a.addEventListener('blur', down); o.a.addEventListener('ccba:drop', down);
+    });
+    function rise() { var now = performance.now(); C.forEach(function (o) { o.t0 = now + o.dist / dmax * 750; }); kick(); }
+    if (reduce) { C.forEach(function (o) { o.h = o.H; draw(o); }); }
+    else {
+      C.forEach(draw);
+      if ('IntersectionObserver' in window) {
+        var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); rise(); } }, { threshold: .25 });
+        io.observe(svg);
+      } else rise();
+    }
+    parallax(art || svg.parentElement, svg);
+  }
+
+  function fsMap(svg) {                                    // France Services : trame couchée, épingles debout
+    var dots = svg.querySelector('.ht-dots'); if (!dots) return;
+    dots.setAttribute('transform', 'matrix(' + MAT + ')');
+    var vb = svg.getAttribute('viewBox').split(/\s+/).map(Number), pts = [];
+    [[vb[0], vb[1]], [vb[0] + vb[2], vb[1]], [vb[0], vb[1] + vb[3]], [vb[0] + vb[2], vb[1] + vb[3]]].forEach(function (c) { pts.push(P(c[0], c[1], 0)); });
+    var pins = Array.prototype.slice.call(svg.querySelectorAll('.pin')), par = pins.length ? pins[0].parentNode : null;
+    pins.map(function (pin, i) {
+      var c = pin.querySelector('circle'), tx = pin.querySelector('text'), x = +c.getAttribute('cx'), y = +c.getAttribute('cy'), g = P(x, y, 0), hy = g[1] - 34;
+      var sh = document.createElementNS(NS, 'ellipse'); sh.setAttribute('class', 'pin-shadow'); sh.setAttribute('cx', g[0].toFixed(1)); sh.setAttribute('cy', g[1].toFixed(1)); sh.setAttribute('rx', 7); sh.setAttribute('ry', 2.8);
+      var stem = document.createElementNS(NS, 'line'); stem.setAttribute('class', 'pin-stem');
+      stem.setAttribute('x1', g[0].toFixed(1)); stem.setAttribute('y1', g[1].toFixed(1)); stem.setAttribute('x2', g[0].toFixed(1)); stem.setAttribute('y2', (hy + 8).toFixed(1));
+      var head = document.createElementNS(NS, 'g'); head.setAttribute('class', 'pin-head');
+      c.setAttribute('cx', g[0].toFixed(1)); c.setAttribute('cy', hy.toFixed(1));
+      tx.setAttribute('x', g[0].toFixed(1)); tx.setAttribute('y', (hy + 3.4).toFixed(1));
+      head.appendChild(c); head.appendChild(tx);
+      pin.appendChild(sh); pin.appendChild(stem); pin.appendChild(head);
+      pin.style.setProperty('--i', i);
+      pts.push([g[0], hy - 12]);
+      return { pin: pin, d: g[2] };
+    }).sort(function (a, b) { return a.d - b.d; }).forEach(function (o) { par.appendChild(o.pin); });
+    var b = bounds(pts), m = 4;
+    svg.setAttribute('viewBox', [b[0] - m, b[1] - m, b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m].map(function (v) { return v.toFixed(1); }).join(' '));
+    svg.classList.add('is-3d');
+    parallax(svg.closest('.fs-art'), svg);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('svg.commune-map'), function (svg) { try { prisms(svg); } catch (e) {} });
+  Array.prototype.forEach.call(document.querySelectorAll('svg.fs-map'), function (svg) { try { fsMap(svg); } catch (e) {} });
+
+  /* vignette du territoire dans l'en-tête des pages : suit le pointeur */
+  var head = document.querySelector('.page-head'), hm = head && head.querySelector('.head-map');
+  if (hm && fine && !reduce) {
+    var hr = 0;
+    head.addEventListener('pointermove', function (e) {
+      var r = head.getBoundingClientRect(), px = (e.clientX - r.left) / r.width - .5, py = (e.clientY - r.top) / r.height - .5;
+      if (!hr) hr = requestAnimationFrame(function () { hr = 0; hm.style.setProperty('--hpx', px.toFixed(3)); hm.style.setProperty('--hpy', py.toFixed(3)); });
+    });
+    head.addEventListener('pointerleave', function () { hm.style.setProperty('--hpx', 0); hm.style.setProperty('--hpy', 0); });
+  }
+
+  /* cartes, tuiles et vignettes : s'inclinent sous le pointeur, un plateau se soulève dessous */
+  if (fine && !reduce) {
+    Array.prototype.forEach.call(document.querySelectorAll('.card, .hub-card, .ev-card, .news-feature, .news-item, .partner, .dock-a'), function (el) {
+      if (el.closest('.mega, .sp, .main-nav')) return;
+      var surf = document.createElement('span'); surf.className = 'tilt-surf'; surf.setAttribute('aria-hidden', 'true');
+      el.insertBefore(surf, el.firstChild);
+      el.classList.add('tilt');
+      var raf = 0, px = 0, py = 0;
+      function apply() {
+        raf = 0;
+        el.style.setProperty('--rx', (-py * 7).toFixed(2) + 'deg'); el.style.setProperty('--ry', (px * 9).toFixed(2) + 'deg');
+        el.style.setProperty('--gx', ((px + .5) * 100).toFixed(1) + '%'); el.style.setProperty('--gy', ((py + .5) * 100).toFixed(1) + '%');
+      }
+      el.addEventListener('pointerenter', function () { if (el.classList.contains('reveal') && !el.classList.contains('is-in')) return; el.classList.remove('is-back'); el.classList.add('is-tilt'); });
+      el.addEventListener('pointermove', function (e) {
+        if (!el.classList.contains('is-tilt')) return;
+        var r = el.getBoundingClientRect(); px = (e.clientX - r.left) / r.width - .5; py = (e.clientY - r.top) / r.height - .5;
+        if (!raf) raf = requestAnimationFrame(apply);
+      });
+      el.addEventListener('pointerleave', function () {
+        el.classList.remove('is-tilt'); el.classList.add('is-back'); px = py = 0; apply();
+        setTimeout(function () { el.classList.remove('is-back'); }, 700);
+      });
+    });
+  }
+  return { P: P };
 })();

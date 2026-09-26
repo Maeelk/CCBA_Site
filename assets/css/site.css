@@ -122,13 +122,13 @@ main:focus { outline: none; }
 .nav-list { display: flex; justify-content: space-between; gap: 4px; list-style: none; margin: 0; padding: 0; }
 .nav-btn { position: relative; display: inline-flex; align-items: center; gap: 7px; font: 700 15px/1.25 var(--f-body); color: var(--ink); background: none; border: 0; padding: 17px 2px 16px; cursor: pointer; text-align: left; transition: color .2s; }
 .nav-btn::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--peche); transform: scaleX(0); transform-origin: left; transition: transform .45s var(--ease); }
-.nav-btn .caret { width: 15px; height: 15px; color: var(--peche); transition: transform .35s var(--ease); }
+.nav-btn .caret { width: 15px; height: 15px; color: var(--peche); transform: perspective(60px) rotateX(0); transition: transform .5s var(--ease-out); }
 .nav-btn:hover, .nav-btn[aria-expanded="true"] { color: var(--cassis); }
 .nav-btn:hover::after, .nav-btn[aria-expanded="true"]::after { transform: scaleX(1); }
 .nav-btn[aria-current]::after { transform: scaleX(1); background: var(--cassis); }
-.nav-btn[aria-expanded="true"] .caret { transform: rotate(180deg); }
-.mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); box-shadow: 0 40px 60px -40px rgba(37,26,33,.28); animation: megaIn .35s var(--ease-out); }
-@keyframes megaIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.nav-btn[aria-expanded="true"] .caret { transform: perspective(60px) rotateX(180deg); }
+.mega { position: absolute; left: 0; right: 0; top: 100%; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); box-shadow: 0 40px 60px -40px rgba(37,26,33,.28); transform-origin: 50% 0; animation: megaIn .55s var(--ease-out); }
+@keyframes megaIn { from { opacity: 0; transform: perspective(1600px) rotateX(-13deg) translateY(-4px); } to { opacity: 1; transform: none; } }
 .mega-inner { display: grid; grid-template-columns: 330px 1fr; gap: 56px; padding-top: 40px; padding-bottom: 48px; }
 .mega-intro { padding-right: 40px; border-right: 1px solid var(--line); }
 .mega-ico { width: 34px; height: 34px; color: var(--peche); margin-bottom: 18px; }
@@ -169,7 +169,7 @@ main:focus { outline: none; }
 .hero-name .w > span { display: inline-block; animation: wordUp 1.15s var(--ease-out) both; }
 .hero-name .w:nth-child(2) > span { animation-delay: .12s; }
 @keyframes wordUp { from { transform: translateY(105%); } to { transform: none; } }
-@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: perspective(900px) translateY(18px) rotateX(16deg); } to { opacity: 1; transform: none; } }
 
 .hero-find { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-rows: auto auto; gap: 0 clamp(32px, 5vw, 80px); align-items: start; }
 .hero-find .lead { grid-row: 1 / span 2; }
@@ -415,6 +415,8 @@ main:focus { outline: none; }
 .m-commune:hover polygon, .m-commune:focus polygon { fill: var(--peche); }
 .m-commune:focus { outline: none; }
 .m-commune:focus-visible polygon { fill: var(--peche); stroke: var(--cassis); stroke-width: 2; }
+.m-commune[data-tint="0"] polygon { fill: #E8DDD1; } .m-commune[data-tint="1"] polygon { fill: #F4EEE7; } .m-commune[data-tint="2"] polygon { fill: #EEE5DB; }
+.m-commune:hover polygon, .m-commune.is-hl polygon, .m-commune:focus polygon { fill: var(--peche); }
 .m-commune.is-current polygon { fill: var(--cassis); }
 .map-tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 13.5px; font-weight: 700; padding: 6px 11px; border-radius: 6px; margin: 0; opacity: 0; transform: translate(-50%, -140%); transition: opacity .15s; white-space: nowrap; z-index: 3; }
 .map-tip.is-on { opacity: 1; }
@@ -566,7 +568,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .is-choro .m-commune[data-pc="1"] polygon { fill: #F3ECE4; } .is-choro .m-commune[data-pc="2"] polygon { fill: #DCC8B6; }
 .is-choro .m-commune[data-pc="3"] polygon { fill: #B08B94; } .is-choro .m-commune[data-pc="4"] polygon { fill: #83596E; }
 .is-choro .m-commune[data-pc="5"] polygon { fill: #4A2E3F; }
-.is-choro .m-commune:hover polygon, .is-choro .m-commune:focus-visible polygon { fill: var(--peche); }
+.is-choro .m-commune:hover polygon, .is-choro .m-commune.is-hl polygon, .is-choro .m-commune:focus-visible polygon { fill: var(--peche); }
 .map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; color: var(--muted); justify-content: center; }
 .map-legend li { display: flex; align-items: center; gap: 6px; }
 .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line); }
@@ -690,7 +692,8 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .nf .hero-search { margin: 30px auto; }
 
 /* ---------- Apparitions (amélioration progressive) ---------- */
-.js .reveal { opacity: 0; transform: translateY(26px); transition: opacity .9s var(--ease-out), transform .9s var(--ease-out); transition-delay: var(--d, 0s); }
+.js .reveal { opacity: 0; transform: perspective(1200px) translate3d(0, 34px, -40px) rotateX(9deg); transform-origin: 50% 0; transition: opacity .9s var(--ease-out), transform 1.05s var(--ease-out); transition-delay: var(--d, 0s); }
+.js .reveal.reveal-flip { transform: perspective(900px) translateY(20px) rotateX(-58deg); transform-origin: 50% 100%; }
 .js .reveal.is-in { opacity: 1; transform: none; }
 .page-head-text > * { animation: rise .9s var(--ease-out) both; }
 .page-head-text > :nth-child(2) { animation-delay: .06s; } .page-head-text > :nth-child(3) { animation-delay: .12s; } .page-head-text > :nth-child(4) { animation-delay: .18s; }
@@ -714,7 +717,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-  .js .reveal { opacity: 1; transform: none; }
+  .js .reveal, .js .reveal.reveal-flip { opacity: 1; transform: none; }
   .cl { stroke-dashoffset: 0; }
   .ring { animation: none !important; }
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
@@ -752,7 +755,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .nav-row { border: 0; }
   .header-phone { display: none; }
   .header-inner { min-height: 68px; }
-  .main-nav { position: fixed; inset: 0 0 0 auto; width: min(430px, 100%); background: var(--surface); z-index: 100; transform: translateX(100%); visibility: hidden; transition: transform .45s var(--ease-out), visibility .45s; overflow-y: auto; padding: 0 0 40px; box-shadow: -30px 0 60px -30px rgba(37,26,33,.4); margin: 0; }
+  .main-nav { position: fixed; inset: 0 0 0 auto; width: min(430px, 100%); background: var(--surface); z-index: 100; transform: perspective(1400px) translateX(100%) rotateY(-24deg); transform-origin: 100% 50%; visibility: hidden; transition: transform .6s var(--ease-out), visibility .6s; overflow-y: auto; padding: 0 0 40px; box-shadow: -30px 0 60px -30px rgba(37,26,33,.4); margin: 0; }
   .main-nav.is-open { transform: none; visibility: visible; }
   .drawer-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--line); font: 700 20px var(--f-title); color: var(--cassis); position: sticky; top: 0; background: var(--surface); z-index: 2; }
   .nav-list { flex-direction: column; gap: 0; padding: 4px 20px; }
@@ -852,7 +855,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 @media print {
   .site-header, .site-footer, .side, .to-top, .hero-band, .video-toggle, .head-map { display: none !important; }
   body { background: #fff; }
-  .js .reveal { opacity: 1; transform: none; }
+  .js .reveal, .js .reveal.reveal-flip { opacity: 1; transform: none; }
 }
 
 /* ---------- Accès rapides (v3.2) : tuiles enrichies ---------- */
@@ -1209,3 +1212,75 @@ html.splash-shown .hero-sun { animation: none; }
   .sp-ui button { height: 42px; font-size: 13px; }
 }
 @media print { .sp, .sp-rim { display: none !important; } html.splash::before { display: none; } }
+
+
+/* ==========================================================================
+   Relief et profondeur (3D) — carte des communes en prismes, carte France
+   Services en perspective, menus qui se déplient, sections qui se redressent,
+   cartes qui s'inclinent sous le pointeur. Tout est désactivé si l'usager
+   demande de réduire les animations.
+   ========================================================================== */
+/* carte des communes : prismes (hauteur = population) */
+.terr-art.is-3d { aspect-ratio: auto; perspective: 1400px; max-width: 620px; }
+.communes-map .terr-art.is-3d { max-width: 560px; }
+.terr-art.is-3d .commune-map { position: relative; left: auto; top: auto; width: 100%; height: auto; max-height: none; }
+.commune-map.is-3d { overflow: visible; transform: rotateX(var(--mrx, 0deg)) rotateY(var(--mry, 0deg)); transform-origin: 50% 60%; transition: transform .7s var(--ease-out); }
+.side-card .commune-map.is-3d { max-width: 300px; display: block; }
+.m-wall { stroke-width: .5; stroke-linejoin: round; transition: fill .25s, stroke .25s; }
+.m-wall.w1 { fill: #DCCFC2; stroke: #DCCFC2; } .m-wall.w2 { fill: #C9B6A5; stroke: #C9B6A5; } .m-wall.w3 { fill: #AE9684; stroke: #AE9684; }
+.m-commune:hover .m-wall.w1, .m-commune.is-hl .m-wall.w1, .m-commune:focus .m-wall.w1 { fill: #EC7E82; stroke: #EC7E82; }
+.m-commune:hover .m-wall.w2, .m-commune.is-hl .m-wall.w2, .m-commune:focus .m-wall.w2 { fill: #CF3C43; stroke: #CF3C43; }
+.m-commune:hover .m-wall.w3, .m-commune.is-hl .m-wall.w3, .m-commune:focus .m-wall.w3 { fill: #A32229; stroke: #A32229; }
+.m-commune.is-current .m-wall.w1 { fill: #86627A; stroke: #86627A; } .m-commune.is-current .m-wall.w2 { fill: #4E3041; stroke: #4E3041; } .m-commune.is-current .m-wall.w3 { fill: #3A2230; stroke: #3A2230; }
+.is-choro .m-commune[data-pc="4"] .m-wall.w2, .is-choro .m-commune[data-pc="5"] .m-wall.w2 { fill: #5B3A4C; stroke: #5B3A4C; }
+.is-choro .m-commune[data-pc="4"] .m-wall.w3, .is-choro .m-commune[data-pc="5"] .m-wall.w3 { fill: #3F2634; stroke: #3F2634; }
+.m-rings .ring:first-child { stroke: var(--relief-line); opacity: .6; }
+/* carte France Services : trame couchée, épingles debout */
+.fs-map.is-3d .pin-stem { stroke: var(--cassis); stroke-width: 1.4; stroke-linecap: round; }
+.fs-map.is-3d .pin-shadow { fill: rgba(94,58,79,.25); }
+.fs-map.is-3d .pin.open .pin-stem { stroke: #2E7D4F; }
+.fs-map.is-3d .pin-head { opacity: 0; }
+.fs-art.is-in .fs-map.is-3d .pin-head { animation: pinDrop .9s var(--ease-out) both; animation-delay: calc(.35s + var(--i, 0) * .11s); }
+.fs-art.is-in .fs-map.is-3d .pin-stem { animation: pinStem .9s var(--ease-out) both; animation-delay: calc(.35s + var(--i, 0) * .11s); }
+@keyframes pinDrop { from { opacity: 0; transform: translateY(-46px); } 60% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes pinStem { from { opacity: 0; } to { opacity: 1; } }
+.fs-art { perspective: 1200px; }
+.fs-art .fs-map.is-3d { transform: rotateX(var(--mrx, 0deg)) rotateY(var(--mry, 0deg)); transition: transform .7s var(--ease-out); }
+/* vignette du territoire dans les en-têtes : la carte se couche en perspective */
+.head-map { perspective: 700px; }
+.head-map img { transform-origin: 50% 55%; transform: rotateX(calc(44deg + var(--hpy, 0) * 10deg)) rotateZ(calc(-14deg + var(--hpx, 0) * 12deg)); filter: drop-shadow(0 16px 12px rgba(94,58,79,.16)); transition: transform .8s var(--ease-out); animation: headTilt 1.8s var(--ease-out) .25s both; }
+@keyframes headTilt { from { transform: rotateX(0deg) rotateZ(0deg); filter: drop-shadow(0 0 0 rgba(94,58,79,0)); } }
+/* menus : colonnes qui se redressent, tiroir mobile en volet */
+.mega-intro, .mega-col { transform-origin: 50% 0; animation: mItem .65s var(--ease-out) both; animation-delay: calc(.06s + var(--i, 0) * .045s); }
+@keyframes mItem { from { opacity: 0; transform: perspective(900px) translateY(18px) rotateX(-26deg); } to { opacity: 1; transform: none; } }
+.search-panel { transform-origin: 50% 0; }
+@media (max-width: 1024px) {
+  .main-nav.is-open .nav-item, .main-nav.is-open .drawer-utility { animation: dItem .65s var(--ease-out) both; animation-delay: calc(.12s + var(--i, 6) * .05s); transform-origin: 100% 50%; }
+  .mega:not([hidden]) { animation: mDrop .5s var(--ease-out); transform-origin: 50% 0; }
+}
+@keyframes dItem { from { opacity: 0; transform: perspective(800px) translateX(46px) rotateY(-34deg); } to { opacity: 1; transform: none; } }
+@keyframes mDrop { from { opacity: 0; transform: perspective(900px) rotateX(-28deg); } to { opacity: 1; transform: none; } }
+/* orientations : le contenu du panneau ouvert pivote en place */
+.orx.is-js .orx-p.is-open .orx-c > * { animation: orxIn .8s var(--ease-out) both; animation-delay: calc(.3s + var(--k, 0) * .06s); transform-origin: 0 50%; }
+.orx.is-js .orx-p.is-open .orx-c > :nth-child(2) { --k: 1; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(3) { --k: 2; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(4) { --k: 3; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(5) { --k: 4; }
+@keyframes orxIn { from { opacity: 0; transform: perspective(900px) translateX(24px) rotateY(-24deg); } to { opacity: 1; transform: none; } }
+/* cartes et tuiles : inclinaison sous le pointeur, avec un plateau qui se soulève */
+.tilt { z-index: 0; transform-style: preserve-3d; }
+.tilt-surf { position: absolute; inset: -14px -16px; z-index: -1; border-radius: 14px; background: var(--surface); box-shadow: 0 34px 50px -30px rgba(37,26,33,.38), 0 0 0 1px rgba(217,204,191,.55); opacity: 0; transform: translateZ(-2px); transition: opacity .35s var(--ease); pointer-events: none; overflow: hidden; }
+.tilt-surf::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(225,66,72,.10), rgba(225,66,72,0) 55%); }
+.js .tilt.is-tilt, .js .reveal.is-in.tilt.is-tilt { z-index: 2; transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform .18s linear; transition-delay: 0s; }
+.js .tilt.is-back, .js .reveal.is-in.tilt.is-back { transition: transform .7s var(--ease-out), opacity .9s var(--ease-out); transition-delay: 0s; }
+.tilt.is-tilt .tilt-surf { opacity: 1; }
+.tilt .card-media, .tilt .nf-media, .tilt .ni-media, .tilt .ev-date, .tilt .dock-ico, .tilt .card-ico { transform: translateZ(24px); }
+.tilt .card-title, .tilt .ni-title, .tilt .nf-title, .tilt h2, .tilt .partner-t, .tilt .dock-t { transform: translateZ(14px); }
+.dock-a.tilt .tilt-surf { inset: 0; border-radius: 0; }
+/* barre latérale : les liens avancent d'un cran */
+.side-nav a { display: inline-block; transition: transform .35s var(--ease-out), color .2s; }
+.side-nav a:hover { transform: perspective(400px) translateZ(14px) translateX(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .commune-map.is-3d, .fs-art .fs-map.is-3d, .head-map img, .tilt, .side-nav a { transform: none !important; animation: none !important; }
+  .fs-map.is-3d .pin-head, .fs-map.is-3d .pin-stem { opacity: 1; animation: none !important; }
+  .mega, .mega-intro, .mega-col, .main-nav.is-open .nav-item, .orx-c > * { animation: none !important; }
+  .main-nav { transform: translateX(100%); }
+  .js .reveal.reveal-flip { transform: none; }
+}
