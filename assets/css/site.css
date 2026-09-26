@@ -1144,3 +1144,70 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 @media print { .listen, .ev-actions, .art-meta .chip-btn { display: none !important; } }
 .hero-search { z-index: 6; }
 .hero-find .chips { position: relative; z-index: 1; }
+
+/* ==========================================================================
+   Écran d'accueil animé (splash) — 10 s, une fois par session, page d'accueil
+   (script assets/js/splash.js, chargé seulement quand il doit s'afficher)
+   ========================================================================== */
+html.splash, html.splash body { overflow: hidden; }
+html.splash::before { content: ""; position: fixed; inset: 0; z-index: 2147483000; background: var(--paper); }
+html.splash.splash-on::before { display: none; }
+html.splash .hero, html.splash .hero *, html.splash .hero *::after { animation-play-state: paused !important; }
+html.splash-shown .hero-sun { animation: none; }
+.sp { position: fixed; inset: 0; z-index: 2147483001; overflow: hidden; background: var(--paper); color: var(--cassis); cursor: pointer; -webkit-user-select: none; user-select: none; touch-action: none; -webkit-tap-highlight-color: transparent; }
+.sp.no-gl { background: radial-gradient(circle at var(--gx, 70%) var(--gy, 60%), rgba(244,233,222,calc(var(--ga, 0) * 1)) 0, rgba(251,227,224,calc(var(--ga, 0) * .6)) 12vmax, rgba(253,252,250,0) 48vmax), var(--paper); }
+.sp canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.sp.is-revealing { -webkit-mask: radial-gradient(circle at var(--hx) var(--hy), transparent var(--hr), #000 calc(var(--hr) + 1px)); mask: radial-gradient(circle at var(--hx) var(--hy), transparent var(--hr), #000 calc(var(--hr) + 1px)); }
+.sp-rim { position: fixed; z-index: 2147483002; left: 0; top: 0; width: 0; height: 0; border-radius: 50%; border: 1.5px solid var(--peche); pointer-events: none; opacity: 0; box-sizing: border-box; }
+.sp-copy { position: absolute; inset: 0; pointer-events: none; }
+.sp-blk { position: absolute; left: 6vw; top: 50%; width: min(46vw, 660px); transform: translateY(-50%); opacity: 0; }
+.sp-a { top: 42%; }
+.sp-kick { display: flex; align-items: center; gap: 10px; margin: 0 0 22px; font: 700 13px/1 var(--f-body); letter-spacing: .22em; text-transform: uppercase; color: var(--peche-d); }
+.sp-kick::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--peche); }
+.sp-h { margin: 0; font: 700 clamp(44px, 6.6vw, 112px)/.92 var(--f-title); letter-spacing: -.055em; color: var(--cassis); }
+.sp-line { display: block; overflow: hidden; padding: 0 .04em .1em 0; }
+.sp-sub { margin-top: .3em; font-size: .4em; line-height: 1.1; letter-spacing: -.02em; color: var(--ink); }
+.sp-wd { display: inline-block; white-space: nowrap; }
+.sp-ch { display: inline-block; will-change: transform; }
+.sp-count { display: flex; align-items: baseline; gap: .12em; margin: 0; font: 700 clamp(120px, 17vw, 260px)/.8 var(--f-title); letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.sp-num { display: inline-block; }
+.sp-unit { font-size: .19em; letter-spacing: -.02em; color: var(--ink); }
+.sp-tick { height: 1.35em; overflow: hidden; margin: 20px 0 0; font: 700 clamp(15px, 1.3vw, 19px)/1.35 var(--f-body); letter-spacing: .02em; color: var(--peche-d); }
+.sp-tick span { display: block; }
+.sp-pop { margin: 22px 0 0; font: 400 clamp(20px, 2vw, 30px)/1.2 var(--f-body); color: var(--muted); }
+.sp-popn { font: 700 1.5em/1 var(--f-title); letter-spacing: -.03em; color: var(--cassis); font-variant-numeric: tabular-nums; }
+.sp-pour { margin: 0 0 .15em; font: 400 clamp(24px, 2.8vw, 42px)/1.1 var(--f-body); color: var(--muted); }
+.sp-slot { position: relative; height: 1.14em; overflow: hidden; margin: 0; font: 700 clamp(44px, 5.5vw, 100px)/1.08 var(--f-title); letter-spacing: -.05em; }
+.sp-c { width: min(52vw, 760px); }
+.sp-verb { position: absolute; left: 0; top: 0; white-space: nowrap; }
+.sp-verb.is-final { color: var(--peche); }
+.sp-logo { position: absolute; left: 0; top: 0; margin: 0; text-align: center; pointer-events: none; will-change: transform; }
+.sp-logo img { display: block; width: 100%; height: auto; opacity: 0; }
+.sp-tag { margin: clamp(18px, 2.4vw, 30px) 0 0; font: 700 clamp(19px, 2vw, 30px)/1.15 var(--f-title); letter-spacing: -.02em; color: var(--cassis); opacity: 0; }
+.sp-ui { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; padding: 0 clamp(16px, 3vw, 36px) clamp(16px, 3vw, 32px); pointer-events: none; }
+.sp-ui button { pointer-events: auto; display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 8px 0 18px; border-radius: 999px; border: 1px solid var(--line-2); background: rgba(255,255,255,.84); color: var(--cassis); font: 700 14px var(--f-body); cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: border-color .2s, background .2s, color .2s; }
+.sp-ui button:hover { border-color: var(--cassis); background: #fff; }
+.sp-ui button:focus-visible { outline: 2px solid var(--peche); outline-offset: 3px; }
+.sp-ui .sp-sound { padding: 0 18px 0 14px; }
+.sp-sound .ico { width: 20px; height: 20px; }
+.sp-sound .sp-w { opacity: .35; transition: opacity .2s; }
+.sp-sound[aria-pressed="true"] { background: var(--cassis); border-color: var(--cassis); color: #fff; }
+.sp-sound[aria-pressed="true"] .sp-w { opacity: 1; }
+.sp-ring { width: 30px; height: 30px; transform: rotate(-90deg); }
+.sp-ring circle { fill: none; stroke-width: 2.6; }
+.sp-ring .bg { stroke: var(--line); }
+.sp-ring .fg { stroke: var(--peche); stroke-dasharray: 100.53; stroke-dashoffset: 100.53; stroke-linecap: round; }
+@media (max-aspect-ratio: 105/100) {
+  .sp-blk { left: 7vw; right: 7vw; width: auto; top: 8vh; transform: none; }
+  .sp-a { top: 12vh; }
+  .sp-kick { margin-bottom: 16px; font-size: 12px; }
+  .sp-h { font-size: 13.4vw; }
+  .sp-count { font-size: 30vw; }
+  .sp-tick { margin-top: 12px; font-size: 15px; }
+  .sp-pop { margin-top: 12px; font-size: 5.2vw; }
+  .sp-pour { font-size: 6.4vw; }
+  .sp-slot { font-size: 11.6vw; }
+  .sp-c { width: auto; }
+  .sp-ui button { height: 42px; font-size: 13px; }
+}
+@media print { .sp, .sp-rim { display: none !important; } html.splash::before { display: none; } }

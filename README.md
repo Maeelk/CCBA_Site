@@ -60,6 +60,25 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
   - **Accueil du siège de la CCBA** (page « Organisation et pôles » et page Contact) : horaires officiels du lundi au vendredi, 9h–12h et 14h–17h30 (la valeur précédente, 8h30, était erronée et a été corrigée partout — accueil, en-tête et page Contact). Les autres pôles (technique, aménagement) n’ont pas d’horaires de guichet publiés : leurs adresses restent en simple texte.
   - Ces trois lieux n’ayant qu’une seule adresse, le composant s’affiche sans la carte en points (variante à une seule ligne, sans numéro de guichet).
 
+## Écran d’accueil animé (version 3.8)
+
+Une introduction de **10 secondes** présente la CCBA à l’ouverture du site, entièrement dessinée en code (aucune vidéo, aucune image) :
+
+| Temps | Scène |
+|---|---|
+| 0 – 2 s | **L’aube** : trois lignes de crête se tracent, le soleil rouge pêche se lève derrière elles avec un halo de lumière ; « Le jour se lève sur le Bassin d’Aubenas ». |
+| 2 – 4,8 s | **28 communes** : ~1 100 particules jaillissent du soleil et dessinent la trame du territoire commune par commune (chaque commune s’illumine en arrivant) ; compteur 01 → 28, noms qui défilent, puis la population (39 935 habitants). |
+| 4,8 – 8 s | **« Un territoire pour… »** grandir, habiter, entreprendre, se cultiver, respirer : chaque verbe envoie une onde sur la carte ; « vivre ensemble » tisse le réseau des 28 communes depuis Aubenas. |
+| 8 – 9,1 s | Les particules composent le **logo de la CCBA** : « Ensemble, faisons rayonner le territoire ». |
+| 9,1 – 10 s | Le soleil se pose sur celui de la page d’accueil (s’il est visible à l’écran) et **s’ouvre sur le site** par un cercle qui s’agrandit ; les animations d’entrée de l’accueil démarrent à ce moment-là. |
+
+- **Techniques** : WebGL (ciel, halo, grain de lumière), Canvas 2D (crêtes, particules, réseau des communes), typographie cinétique en Web Animations API, masque CSS pour la révélation, **bande-son générative en Web Audio** (nappe, une note par commune, arpège final) — **coupée par défaut**, bouton « Son ».
+- **Quand** : une fois par session de navigation, seulement quand on arrive sur la page d’accueil depuis l’extérieur. Jamais en navigation interne, jamais sur une autre page d’entrée (un habitant qui arrive par « Jours de collecte » va droit au but), jamais pour les robots d’indexation, jamais si l’usager a demandé de **réduire les animations** dans son système.
+- **Passer** : bouton « Passer l’intro » (avec anneau de progression, focalisé à l’ouverture), touche Échap, clic ou défilement : sortie en moins d’une seconde. Le reste de la page est rendu inerte pendant l’intro, puis restitué ; une description textuelle est fournie aux lecteurs d’écran.
+- **Revoir** : lien « Revoir l’introduction » en pied de page (`?splash`) ; `?nosplash` l’empêche.
+- **Poids** : `assets/js/splash.js` (≈ 60 Ko, ≈ 18 Ko compressé) n’est téléchargé que lorsque l’intro doit s’afficher. Il est généré par `site.py` : données (trame, communes, crêtes) + code source `splash_src.js`. Pour modifier l’animation, éditer `splash_src.js` (le minutage est dans la constante `TL`, les verbes dans `VERBS`).
+- Recette : `?splash=5.2` fige l’image à 5,2 s.
+
 ## Charte graphique
 
 - Rouge pêche `#E14248`, Cassis `#5E3A4F`, Marron glacé `#C6B09C`, fond clair crème.
