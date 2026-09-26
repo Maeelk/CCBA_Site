@@ -141,7 +141,7 @@
       a.setAttribute('aria-label', name);
       function show() {
         if (!tip) return;
-        var poly = a.querySelector('polygon').getBoundingClientRect(), box = wrap.getBoundingClientRect();
+        var poly = a.querySelector('.m-fill, polygon').getBoundingClientRect(), box = wrap.getBoundingClientRect();
         tip.textContent = name;
         tip.style.left = (poly.left - box.left + poly.width / 2) + 'px';
         tip.style.top = (poly.top - box.top + poly.height / 2) + 'px';
@@ -289,16 +289,6 @@
     }, { threshold: 0.6 });
     counters.forEach(function (c) { co.observe(c); });
   }
-
-  /* Carte : bascule population */
-  $$('[data-choro]').forEach(function (b) {
-    var wrap = b.closest('.communes-map'), legend = wrap.querySelector('.map-legend');
-    b.addEventListener('click', function () {
-      var on = b.getAttribute('aria-pressed') !== 'true';
-      b.setAttribute('aria-pressed', String(on));
-      wrap.classList.toggle('is-choro', on); legend.hidden = !on;
-    });
-  });
 
   /* Sommaire : section active */
   var tocLinks = $$('.toc a');
@@ -913,11 +903,10 @@
 
 
 /* ==========================================================================
-   Carte des communes en relief : chaque commune devient un prisme dont la
-   hauteur suit la population. Projection axonométrique calculée ici, dans le
-   SVG lui-même : les communes restent des liens (clavier, lecteur d'écran).
-   Les prismes montent en vague depuis Aubenas quand la carte apparaît ; une
-   commune survolée ou focalisée se soulève.
+   Relief et profondeur. La carte des communes est une maquette en courbes de
+   niveau calculée au build (terrain.py, altitudes IGN) : ici on se contente de
+   la faire « monter » à partir d'une carte à plat quand elle apparaît, et de
+   l'incliner légèrement sous le pointeur. Même projection que terrain.py.
    ========================================================================== */
 var CCBA3D = (function () {
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -927,8 +916,6 @@ var CCBA3D = (function () {
   var ca = Math.cos(AZ), sa = Math.sin(AZ), ct = Math.cos(TI), st = Math.sin(TI);
   function P(x, y, z) { var X = x - CX, Y = y - CY, yr = sa * X + ca * Y; return [ca * X - sa * Y, yr * ct - z * st, yr]; }
   var MAT = [ca, sa * ct, -sa, ca * ct, -ca * CX + sa * CY, -ct * (sa * CX + ca * CY)].map(function (v) { return v.toFixed(5); }).join(' ');
-  function f2(p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }
-  function back(x) { var c = 1.7; return x >= 1 ? 1 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); }
   function bounds(list) { var b = [1e9, 1e9, -1e9, -1e9]; list.forEach(function (p) { b[0] = Math.min(b[0], p[0]); b[1] = Math.min(b[1], p[1]); b[2] = Math.max(b[2], p[0]); b[3] = Math.max(b[3], p[1]); }); return b; }
   function parallax(zone, target) {                      // légère inclinaison de l'ensemble sous le pointeur
     if (!fine || reduce || !zone) return;
@@ -940,88 +927,16 @@ var CCBA3D = (function () {
     zone.addEventListener('pointerleave', function () { target.style.setProperty('--mrx', '0deg'); target.style.setProperty('--mry', '0deg'); });
   }
 
-  function prisms(svg) {
-    var links = Array.prototype.slice.call(svg.querySelectorAll('a.m-commune'));
-    if (!links.length) return;
-    var maxPop = Math.max.apply(null, links.map(function (a) { return +a.getAttribute('data-pop') || 0; })) || 1;
-    var C = links.map(function (a, i) {
-      a.setAttribute('data-tint', i % 3);
-      var poly = a.querySelector('polygon'), raw = poly.getAttribute('points').trim().split(/[\s,]+/).map(Number), pts = [], j;
-      for (j = 0; j + 1 < raw.length; j += 2) pts.push([raw[j], raw[j + 1]]);
-      var area = 0, gx = 0, gy = 0;
-      for (j = 0; j < pts.length; j++) { var p = pts[j], q = pts[(j + 1) % pts.length]; area += p[0] * q[1] - q[0] * p[1]; gx += p[0]; gy += p[1]; }
-      var walls = [1, 2, 3].map(function (k) { var w = document.createElementNS(NS, 'path'); w.setAttribute('class', 'm-wall w' + k); w.setAttribute('aria-hidden', 'true'); a.insertBefore(w, poly); return w; });
-      var cur = a.classList.contains('is-current');
-      return { a: a, poly: poly, pts: pts, sgn: area > 0 ? 1 : -1, walls: walls, cx: gx / pts.length, cy: gy / pts.length,
-        H: 2.5 + 20 * Math.sqrt((+a.getAttribute('data-pop') || 0) / maxPop), h: 0, base: cur ? 9 : 0, lift: cur ? 9 : 0, liftT: cur ? 9 : 0, t0: Infinity };
-    });
-    function draw(o) {
-      var z = o.h + o.lift, n = o.pts.length, top = o.pts.map(function (p) { return P(p[0], p[1], z); }), d = ['', '', ''];
-      o.poly.setAttribute('points', top.map(f2).join(' '));
-      if (z > .15) for (var j = 0; j < n; j++) {
-        var p = o.pts[j], q = o.pts[(j + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1;
-        var nx = o.sgn * dy / L, ny = -o.sgn * dx / L;
-        if (sa * nx + ca * ny <= 0) continue;                // face tournée vers l'arrière : invisible
-        var nxr = ca * nx - sa * ny, k = nxr < -.3 ? 0 : nxr > .3 ? 2 : 1;
-        d[k] += 'M' + f2(P(p[0], p[1], 0)) + 'L' + f2(P(q[0], q[1], 0)) + 'L' + f2(top[(j + 1) % n]) + 'L' + f2(top[j]) + 'Z';
-      }
-      o.walls.forEach(function (w, k) { w.setAttribute('d', d[k]); });
-    }
-    /* ordre de peinture : du fond vers l'avant */
-    var par = links[0].parentNode;
-    if (par.getAttribute('filter')) par.removeAttribute('filter');
-    C.slice().sort(function (a, b) { return P(a.cx, a.cy, 0)[2] - P(b.cx, b.cy, 0)[2]; }).forEach(function (o) { par.appendChild(o.a); });
-    /* ondes du territoire : couchées dans le même plan */
-    var art = svg.closest('.terr-art'), rs = art && art.querySelector('.terr-rings'), extra = [];
-    if (rs) {
-      var g = document.createElementNS(NS, 'g');
-      g.setAttribute('class', 'm-rings'); g.setAttribute('transform', 'matrix(' + MAT + ')'); g.setAttribute('aria-hidden', 'true');
-      Array.prototype.slice.call(rs.querySelectorAll('path')).forEach(function (r, ri) {
-        if (ri > 3) { r.remove(); return; }                // en relief, on garde les ondes proches
-        try { var bb = r.getBBox(); [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]].forEach(function (c) { extra.push(P(c[0], c[1], 0)); }); } catch (e) {}
-        g.appendChild(r);
-      });
-      svg.insertBefore(g, svg.firstChild);
-      rs.style.display = 'none';
-      art.classList.add('is-3d');
-    }
-    var pts = extra.slice();
-    C.forEach(function (o) { o.pts.forEach(function (p) { pts.push(P(p[0], p[1], 0)); pts.push(P(p[0], p[1], o.H + 16)); }); });
-    var b = bounds(pts), m = 6;
-    svg.setAttribute('viewBox', [b[0] - m, b[1] - m, b[2] - b[0] + 2 * m, b[3] - b[1] + 2 * m].map(function (v) { return v.toFixed(1); }).join(' '));
-    svg.classList.add('is-3d');
-    /* animation */
-    var aub = C.filter(function (o) { return o.a.getAttribute('data-name') === 'Aubenas'; })[0] || C[0], dmax = 1;
-    C.forEach(function (o) { o.dist = Math.hypot(o.cx - aub.cx, o.cy - aub.cy); dmax = Math.max(dmax, o.dist); });
-    var running = false;
-    function loop(now) {
-      var busy = false;
-      C.forEach(function (o) {
-        var ch = false;
-        if (o.h !== o.H && now >= o.t0) { var u = Math.min(1, (now - o.t0) / 950); o.h = o.H * back(u); if (u >= 1) o.h = o.H; ch = true; }
-        if (o.t0 === Infinity) busy = busy || false; else if (o.h !== o.H) busy = true;
-        if (Math.abs(o.liftT - o.lift) > .03) { o.lift += (o.liftT - o.lift) * .2; ch = true; busy = true; } else if (o.lift !== o.liftT) { o.lift = o.liftT; ch = true; }
-        if (ch) draw(o);
-      });
-      running = busy;
-      if (busy) requestAnimationFrame(loop);
-    }
-    function kick() { if (!running) { running = true; requestAnimationFrame(loop); } }
-    C.forEach(function (o) {
-      var up = function () { o.liftT = o.base + 6; kick(); }, down = function () { o.liftT = o.base; kick(); };
-      o.a.addEventListener('mouseenter', up); o.a.addEventListener('focus', up); o.a.addEventListener('ccba:lift', up);
-      o.a.addEventListener('mouseleave', down); o.a.addEventListener('blur', down); o.a.addEventListener('ccba:drop', down);
-    });
-    function rise() { var now = performance.now(); C.forEach(function (o) { o.t0 = now + o.dist / dmax * 750; }); kick(); }
-    if (reduce) { C.forEach(function (o) { o.h = o.H; draw(o); }); }
+  function relief(svg) {                                 // la maquette monte palier par palier
+    var art = svg.closest('.terr-art') || svg.parentElement;
+    if (reduce || !('IntersectionObserver' in window)) svg.classList.add('is-up', 'no-anim');
     else {
-      C.forEach(draw);
-      if ('IntersectionObserver' in window) {
-        var io = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); rise(); } }, { threshold: .25 });
-        io.observe(svg);
-      } else rise();
+      var io = new IntersectionObserver(function (es) {
+        if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); svg.classList.add('is-up'); }
+      }, { threshold: .3 });
+      io.observe(svg);
     }
-    parallax(art || svg.parentElement, svg);
+    parallax(art, svg);
   }
 
   function fsMap(svg) {                                    // France Services : trame couchée, épingles debout
@@ -1050,7 +965,7 @@ var CCBA3D = (function () {
     parallax(svg.closest('.fs-art'), svg);
   }
 
-  Array.prototype.forEach.call(document.querySelectorAll('svg.commune-map'), function (svg) { try { prisms(svg); } catch (e) {} });
+  Array.prototype.forEach.call(document.querySelectorAll('svg.relief'), function (svg) { try { relief(svg); } catch (e) {} });
   Array.prototype.forEach.call(document.querySelectorAll('svg.fs-map'), function (svg) { try { fsMap(svg); } catch (e) {} });
 
   /* vignette du territoire dans l'en-tête des pages : suit le pointeur */

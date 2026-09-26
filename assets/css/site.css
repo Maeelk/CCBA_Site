@@ -403,21 +403,9 @@ main:focus { outline: none; }
 /* ---------- Territoire : carte + ondes concentriques ---------- */
 .territory { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 6vw, 110px); align-items: center; }
 .territory-map { position: relative; }
-.terr-art { position: relative; width: 100%; max-width: 520px; aspect-ratio: 421 / 575; margin: 0 auto; }
-.terr-rings { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.ring { fill: none; stroke: var(--relief-line); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: calc(.55 - var(--i) * .06); }
-.ring:first-child { stroke: var(--cassis); stroke-width: 1.2; opacity: .75; animation: none; }
-.terr-art .commune-map { position: absolute; left: 23.753%; top: 17.391%; width: 52.494%; height: 65.217%; max-height: none; }
-.commune-map { width: 100%; max-height: 620px; margin: 0 auto; overflow: visible; }
-.m-commune polygon { fill: #F4EEE7; stroke: var(--paper); stroke-width: 1; stroke-linejoin: round; transition: fill .25s; }
-.m-commune:nth-child(3n) polygon { fill: #EEE5DB; }
-.m-commune:nth-child(3n+1) polygon { fill: #E8DDD1; }
-.m-commune:hover polygon, .m-commune:focus polygon { fill: var(--peche); }
-.m-commune:focus { outline: none; }
-.m-commune:focus-visible polygon { fill: var(--peche); stroke: var(--cassis); stroke-width: 2; }
-.m-commune[data-tint="0"] polygon { fill: #E8DDD1; } .m-commune[data-tint="1"] polygon { fill: #F4EEE7; } .m-commune[data-tint="2"] polygon { fill: #EEE5DB; }
-.m-commune:hover polygon, .m-commune.is-hl polygon, .m-commune:focus polygon { fill: var(--peche); }
-.m-commune.is-current polygon { fill: var(--cassis); }
+.terr-art { position: relative; width: 100%; max-width: 600px; margin: 0 auto; perspective: 1400px; }
+.ring { fill: none; stroke: var(--relief-line); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: calc(.5 - var(--i) * .14); }
+.commune-map { display: block; width: 100%; height: auto; margin: 0 auto; overflow: visible; }
 .map-tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; font-size: 13.5px; font-weight: 700; padding: 6px 11px; border-radius: 6px; margin: 0; opacity: 0; transform: translate(-50%, -140%); transition: opacity .15s; white-space: nowrap; z-index: 3; }
 .map-tip.is-on { opacity: 1; }
 .map-hint { text-align: center; color: var(--muted); font-size: 13.5px; margin: 16px 0 0; }
@@ -500,7 +488,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .side-help a[href^="tel"] { font-weight: 700; font-size: 19px; text-decoration: none; letter-spacing: -.01em; }
 .side-card { border-top: 1px solid var(--cassis); padding-top: 18px; }
 .side-card .side-title { color: var(--cassis); }
-.commune-map.small { max-height: 340px; }
 .side-card .commune-picker { margin: 20px 0 16px; }
 .side-card .select-row { flex-direction: column; }
 .side-card .select-row select { min-width: 0; }
@@ -558,21 +545,7 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 /* ---------- Nos 28 communes ---------- */
 .communes-hub { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: clamp(32px, 5vw, 96px); align-items: start; }
 .communes-map { position: sticky; top: calc(var(--hdr) + 16px); }
-.communes-map .terr-art { max-width: 480px; }
-.map-toolbar { display: flex; justify-content: center; margin: 0 0 8px; }
-.toggle { display: inline-flex; align-items: center; gap: 10px; font: 700 14px var(--f-body); color: var(--cassis); background: var(--surface); border: 1px solid var(--line-2); border-radius: 999px; padding: 7px 16px 7px 7px; cursor: pointer; transition: border-color .2s; }
-.toggle:hover { border-color: var(--cassis); }
-.toggle::before { content: ""; width: 34px; height: 20px; border-radius: 999px; background: var(--line) radial-gradient(circle at 10px 50%, #fff 7px, transparent 7.5px); transition: background .25s; }
-.toggle[aria-pressed="true"]::before { background: var(--cassis) radial-gradient(circle at 24px 50%, #fff 7px, transparent 7.5px); }
-.is-choro .m-commune polygon { transition: fill .5s var(--ease); }
-.is-choro .m-commune[data-pc="1"] polygon { fill: #F3ECE4; } .is-choro .m-commune[data-pc="2"] polygon { fill: #DCC8B6; }
-.is-choro .m-commune[data-pc="3"] polygon { fill: #B08B94; } .is-choro .m-commune[data-pc="4"] polygon { fill: #83596E; }
-.is-choro .m-commune[data-pc="5"] polygon { fill: #4A2E3F; }
-.is-choro .m-commune:hover polygon, .is-choro .m-commune.is-hl polygon, .is-choro .m-commune:focus-visible polygon { fill: var(--peche); }
-.map-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; list-style: none; padding: 0; margin: 10px 0 0; font-size: 13px; color: var(--muted); justify-content: center; }
-.map-legend li { display: flex; align-items: center; gap: 6px; }
-.sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line); }
-.sw.pc1 { background: #F3ECE4; } .sw.pc2 { background: #DCC8B6; } .sw.pc3 { background: #B08B94; } .sw.pc4 { background: #83596E; } .sw.pc5 { background: #4A2E3F; }
+.communes-map .terr-art { max-width: 560px; }
 .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 8px 0 40px; border-top: 1px solid var(--cassis); }
 .mini-stats > div { padding: 16px 18px 0; }
 .mini-stats > div:first-child { padding-left: 0; }
@@ -1215,26 +1188,48 @@ html.splash-shown .hero-sun { animation: none; }
 
 
 /* ==========================================================================
-   Relief et profondeur (3D) — carte des communes en prismes, carte France
+   Relief et profondeur (3D) — carte des communes en relief réel, carte France
    Services en perspective, menus qui se déplient, sections qui se redressent,
    cartes qui s'inclinent sous le pointeur. Tout est désactivé si l'usager
    demande de réduire les animations.
    ========================================================================== */
-/* carte des communes : prismes (hauteur = population) */
-.terr-art.is-3d { aspect-ratio: auto; perspective: 1400px; max-width: 620px; }
-.communes-map .terr-art.is-3d { max-width: 560px; }
-.terr-art.is-3d .commune-map { position: relative; left: auto; top: auto; width: 100%; height: auto; max-height: none; }
-.commune-map.is-3d { overflow: visible; transform: rotateX(var(--mrx, 0deg)) rotateY(var(--mry, 0deg)); transform-origin: 50% 60%; transition: transform .7s var(--ease-out); }
-.side-card .commune-map.is-3d { max-width: 300px; display: block; }
-.m-wall { stroke-width: .5; stroke-linejoin: round; transition: fill .25s, stroke .25s; }
-.m-wall.w1 { fill: #DCCFC2; stroke: #DCCFC2; } .m-wall.w2 { fill: #C9B6A5; stroke: #C9B6A5; } .m-wall.w3 { fill: #AE9684; stroke: #AE9684; }
-.m-commune:hover .m-wall.w1, .m-commune.is-hl .m-wall.w1, .m-commune:focus .m-wall.w1 { fill: #EC7E82; stroke: #EC7E82; }
-.m-commune:hover .m-wall.w2, .m-commune.is-hl .m-wall.w2, .m-commune:focus .m-wall.w2 { fill: #CF3C43; stroke: #CF3C43; }
-.m-commune:hover .m-wall.w3, .m-commune.is-hl .m-wall.w3, .m-commune:focus .m-wall.w3 { fill: #A32229; stroke: #A32229; }
-.m-commune.is-current .m-wall.w1 { fill: #86627A; stroke: #86627A; } .m-commune.is-current .m-wall.w2 { fill: #4E3041; stroke: #4E3041; } .m-commune.is-current .m-wall.w3 { fill: #3A2230; stroke: #3A2230; }
-.is-choro .m-commune[data-pc="4"] .m-wall.w2, .is-choro .m-commune[data-pc="5"] .m-wall.w2 { fill: #5B3A4C; stroke: #5B3A4C; }
-.is-choro .m-commune[data-pc="4"] .m-wall.w3, .is-choro .m-commune[data-pc="5"] .m-wall.w3 { fill: #3F2634; stroke: #3F2634; }
-.m-rings .ring:first-child { stroke: var(--relief-line); opacity: .6; }
+/* carte des communes : maquette en courbes de niveau (terrain.py) */
+.commune-map.relief { transform: rotateX(var(--mrx, 0deg)) rotateY(var(--mry, 0deg)); transform-origin: 50% 60%; transition: transform .7s var(--ease-out); }
+.side-card .commune-map.relief { max-width: 320px; }
+.relief .lv { transform: translateY(var(--y)); }
+.relief .lv.t { stroke: rgba(94, 58, 79, .26); stroke-width: .7px; stroke-linejoin: round; }
+.relief .lv.t.m { stroke: rgba(94, 58, 79, .55); stroke-width: 1.1px; }
+.relief .lv.t0 { stroke: var(--cassis); stroke-width: 1.2px; }
+.relief .rl-shadow { fill: var(--cassis); opacity: .1; filter: blur(3px); }
+.relief .m-fill { fill: rgba(225, 66, 72, 0); stroke: rgba(255, 255, 255, .88); stroke-width: 1px; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: fill .25s, stroke .25s; }
+.relief .m-commune { transition: transform .35s var(--ease-out), opacity .6s; }
+.relief .m-commune:focus { outline: none; }
+.relief .m-commune:hover, .relief .m-commune.is-hl, .relief .m-commune:focus-visible { transform: translateY(-2.5px); }
+.relief .m-commune:hover .m-fill, .relief .m-commune.is-hl .m-fill, .relief .m-commune:focus-visible .m-fill { fill: rgba(225, 66, 72, .42); stroke: var(--peche); stroke-width: 1.8px; }
+.relief .m-commune:focus-visible .m-fill { stroke: var(--cassis); stroke-width: 2.2px; }
+.relief .m-commune.is-current .m-fill { fill: rgba(94, 58, 79, .5); stroke: var(--cassis); stroke-width: 1.6px; }
+.relief .pin-shadow { fill: rgba(94, 58, 79, .25); }
+.relief .pin-stem { stroke: var(--cassis); stroke-width: 1.3px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.relief .pin-dot { fill: var(--peche); stroke: #fff; stroke-width: 1.4px; vector-effect: non-scaling-stroke; }
+.relief .rl-pin text { font: 700 7.5px var(--f-body); fill: var(--cassis); paint-order: stroke; stroke: rgba(253, 252, 250, .92); stroke-width: 2.6px; stroke-linejoin: round; }
+.relief.small .rl-pin text, .commune-map.small .rl-pin text { display: none; }
+/* montée : la carte part à plat, chaque palier s'élève à son tour */
+html.js .relief .lv { transition: transform 1.1s cubic-bezier(.2, 1.25, .35, 1) calc(.1s + var(--k) * 75ms); }
+html.js .relief:not(.is-up) .lv { transform: translateY(0); }
+html.js .relief .m-communes, html.js .relief .rl-pin { transition: opacity .7s var(--ease-out) 1.35s; }
+html.js .relief:not(.is-up) .m-communes, html.js .relief:not(.is-up) .rl-pin { opacity: 0; }
+html.js .relief.no-anim .lv, html.js .relief.no-anim .m-communes, html.js .relief.no-anim .rl-pin { transition: none; }
+/* légende */
+.rl-legend { max-width: 460px; margin: 14px auto 0; font-size: 12.5px; color: var(--muted); }
+.rl-k { margin: 0 0 6px; font-weight: 700; color: var(--cassis); font-size: 13px; }
+.rl-k span { font-weight: 400; color: var(--muted); }
+.rl-bar { display: block; height: 9px; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(94, 58, 79, .12); }
+.rl-ticks { position: relative; display: block; height: 18px; font-variant-numeric: tabular-nums; }
+.rl-ticks span { position: absolute; top: 3px; transform: translateX(-50%); }
+.rl-ticks span::before { content: ""; position: absolute; left: 50%; top: -6px; width: 1px; height: 5px; background: rgba(94, 58, 79, .45); }
+.rl-src { margin: 6px 0 0; line-height: 1.5; }
+.rl-src a, .rl-cap a { color: inherit; }
+.rl-cap { font-size: 12px; color: var(--muted); margin: 6px 0 0; text-align: center; }
 /* carte France Services : trame couchée, épingles debout */
 .fs-map.is-3d .pin-stem { stroke: var(--cassis); stroke-width: 1.4; stroke-linecap: round; }
 .fs-map.is-3d .pin-shadow { fill: rgba(94,58,79,.25); }
@@ -1278,7 +1273,7 @@ html.splash-shown .hero-sun { animation: none; }
 .side-nav a { display: inline-block; transition: transform .35s var(--ease-out), color .2s; }
 .side-nav a:hover { transform: perspective(400px) translateZ(14px) translateX(2px); }
 @media (prefers-reduced-motion: reduce) {
-  .commune-map.is-3d, .fs-art .fs-map.is-3d, .head-map img, .tilt, .side-nav a { transform: none !important; animation: none !important; }
+  .commune-map.relief, .fs-art .fs-map.is-3d, .head-map img, .tilt, .side-nav a { transform: none !important; animation: none !important; }
   .fs-map.is-3d .pin-head, .fs-map.is-3d .pin-stem { opacity: 1; animation: none !important; }
   .mega, .mega-intro, .mega-col, .main-nav.is-open .nav-item, .orx-c > * { animation: none !important; }
   .main-nav { transform: translateX(100%); }
