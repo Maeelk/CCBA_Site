@@ -1216,6 +1216,8 @@ html.splash-shown .hero-sun { animation: none; }
 .relief .m-mairie { fill: var(--cassis); stroke: #fff; stroke-width: 1px; vector-effect: non-scaling-stroke; opacity: .75; transition: opacity .25s, fill .25s; }
 .relief .m-commune:hover .m-mairie, .relief .m-commune.is-hl .m-mairie, .relief .m-commune:focus-visible .m-mairie { opacity: 1; fill: var(--cassis); }
 .relief .m-commune.is-current .m-mairie { opacity: 0; }
+.relief .m-commune.is-sel .m-fill { fill: rgba(225, 66, 72, .26); stroke: var(--peche); stroke-width: 1.6px; }
+.relief .m-commune.is-sel .m-mairie { opacity: 1; fill: var(--peche); }
 .relief .rl-pin.is-cur .pin-dot { fill: var(--cassis); }
 .relief .rl-pin.is-aub.is-cur .pin-dot { fill: var(--peche); }
 /* montée : la carte part à plat, chaque palier s'élève à son tour */

@@ -161,7 +161,16 @@
 
   /* ---------- Sélecteurs « aller à » ---------- */
   $$('form[data-goto]').forEach(function (f) {
-    f.addEventListener('submit', function (e) { e.preventDefault(); var v = f.querySelector('select').value; if (v) location.href = v; });
+    var s = f.querySelector('select'), kb = 0;
+    f.addEventListener('submit', function (e) { e.preventDefault(); if (s.value) location.href = s.value; });
+    if (f.hasAttribute('data-go-on-change')) {         // fiche commune : choisir une autre commune l'ouvre aussitôt
+      s.addEventListener('keydown', function (e) { kb = Date.now(); if (e.key === 'Enter' && s.value) { e.preventDefault(); location.href = s.value; } });
+      s.addEventListener('change', function () { if (s.value && Date.now() - kb > 700) location.href = s.value; });   // au clavier, les flèches ne font que parcourir
+    }
+  });
+  /* retour arrière (page restaurée depuis le cache du navigateur) : les sélecteurs repartent à zéro */
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) $$('form[data-go-on-change] select').forEach(function (s) { s.value = ''; });
   });
 
   /* ---------- Filtre texte de liste (communes) ---------- */
@@ -545,7 +554,20 @@
     q('[data-tc-link]').setAttribute('href', a.getAttribute('href'));
     card.classList.remove('is-swap'); void card.offsetWidth; card.classList.add('is-swap');
   }
-  polys.forEach(function (a) { a.addEventListener('mouseenter', function () { show(a); }); a.addEventListener('focus', function () { show(a); }); });
+  /* la fiche, la carte et le sélecteur « Choisir une commune » montrent toujours la même commune */
+  var pick = sec.querySelector('form.commune-picker select'), byHref = {};
+  polys.forEach(function (a) { byHref[a.getAttribute('href')] = a; });
+  function select(a, fromPick) {
+    if (!a) return;
+    show(a);
+    polys.forEach(function (p) { p.classList.toggle('is-sel', p === a); });
+    if (pick && !fromPick) pick.value = a.getAttribute('href');
+  }
+  polys.forEach(function (a) { a.addEventListener('mouseenter', function () { select(a); }); a.addEventListener('focus', function () { select(a); }); });
+  if (pick) pick.addEventListener('change', function () { select(byHref[pick.value], true); });
+  function sync() { var a = pick && byHref[pick.value]; select(a || polys.filter(function (p) { return p.getAttribute('data-name') === 'Aubenas'; })[0]); }
+  sync();
+  window.addEventListener('pageshow', function (e) { if (e.persisted) sync(); });
 })();
 
 /* Tableaux longs (ex. jours de collecte) : filtre « trouver ma commune » */
@@ -718,6 +740,9 @@
   }
   function all() { var v = get(); boxes.forEach(function (b, i) { b._id = i; render(b, v); }); }
   all();
+  // la commune a pu changer ailleurs : retour arrière (page restaurée du cache) ou autre onglet
+  window.addEventListener('pageshow', function (e) { if (e.persisted) all(); });
+  window.addEventListener('storage', function (e) { if (e.key === KEY) all(); });
 })();
 
 /* ==========================================================================
