@@ -564,10 +564,15 @@
     if (pick && !fromPick) pick.value = a.getAttribute('href');
   }
   polys.forEach(function (a) { a.addEventListener('mouseenter', function () { select(a); }); a.addEventListener('focus', function () { select(a); }); });
-  if (pick) pick.addEventListener('change', function () { select(byHref[pick.value], true); });
-  function sync() { var a = pick && byHref[pick.value]; select(a || polys.filter(function (p) { return p.getAttribute('data-name') === 'Aubenas'; })[0]); }
+  if (pick) ['change', 'input'].forEach(function (t) { pick.addEventListener(t, function () { select(byHref[pick.value], true); }); });
+  /* commune affichée par défaut : celle du menu (valeur restaurée par le navigateur), sinon « Ma commune », sinon Aubenas */
+  var bySlug = function (s) { return polys.filter(function (p) { return p.getAttribute('data-slug') === s; })[0]; };
+  var mine = function () { try { return localStorage.getItem('ccba-commune'); } catch (e) { return null; } };
+  function sync() { select((pick && byHref[pick.value]) || bySlug(mine()) || bySlug('aubenas')); }
   sync();
   window.addEventListener('pageshow', function (e) { if (e.persisted) sync(); });
+  /* « Ma commune » vient de changer (encadré de l'accueil, autre onglet…) : la fiche et la carte suivent */
+  document.addEventListener('ccba:mycom', function (e) { var a = bySlug(e.detail); if (a) select(a); });
 })();
 
 /* Tableaux longs (ex. jours de collecte) : filtre « trouver ma commune » */
@@ -738,7 +743,12 @@
       tr.classList.toggle('is-mine', norm(first.textContent) === norm(c.n));
     });
   }
-  function all() { var v = get(); boxes.forEach(function (b, i) { b._id = i; render(b, v); }); }
+  var last = get();
+  function all() {
+    var v = get();
+    boxes.forEach(function (b, i) { b._id = i; render(b, v); });
+    if (v !== last) { last = v; if (v) document.dispatchEvent(new CustomEvent('ccba:mycom', { detail: v })); }
+  }
   all();
   // la commune a pu changer ailleurs : retour arrière (page restaurée du cache) ou autre onglet
   window.addEventListener('pageshow', function (e) { if (e.persisted) all(); });
