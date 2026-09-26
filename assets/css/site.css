@@ -1213,6 +1213,11 @@ html.splash-shown .hero-sun { animation: none; }
 .relief .pin-dot { fill: var(--peche); stroke: #fff; stroke-width: 1.4px; vector-effect: non-scaling-stroke; }
 .relief .rl-pin text { font: 700 7.5px var(--f-body); fill: var(--cassis); paint-order: stroke; stroke: rgba(253, 252, 250, .92); stroke-width: 2.6px; stroke-linejoin: round; }
 .relief.small .rl-pin text, .commune-map.small .rl-pin text { display: none; }
+.relief .m-mairie { fill: var(--cassis); stroke: #fff; stroke-width: 1px; vector-effect: non-scaling-stroke; opacity: .75; transition: opacity .25s, fill .25s; }
+.relief .m-commune:hover .m-mairie, .relief .m-commune.is-hl .m-mairie, .relief .m-commune:focus-visible .m-mairie { opacity: 1; fill: var(--cassis); }
+.relief .m-commune.is-current .m-mairie { opacity: 0; }
+.relief .rl-pin.is-cur .pin-dot { fill: var(--cassis); }
+.relief .rl-pin.is-aub.is-cur .pin-dot { fill: var(--peche); }
 /* montée : la carte part à plat, chaque palier s'élève à son tour */
 html.js .relief .lv { transition: transform 1.1s cubic-bezier(.2, 1.25, .35, 1) calc(.1s + var(--k) * 75ms); }
 html.js .relief:not(.is-up) .lv { transform: translateY(0); }
