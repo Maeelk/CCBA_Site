@@ -48,6 +48,13 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
 - Film : lecture automatique uniquement sur écran large, hors mode économie de données ; pause hors écran et onglet masqué.
 - **À prévoir** : le clip pèse 46 Mo (1920 × 500). Une version compressée (≈ 5 Mo) déposée dans `assets/video/` et référencée dans `site.py` (constante `VIDEO`) allégerait la page.
 
+## Fonctionnalités de service (version 3.6)
+
+- **Ma commune** (accueil et page « Jours de collecte ») : l’usager choisit sa commune une fois ; le choix est mémorisé **sur son appareil uniquement** (stockage local du navigateur, aucun compte, aucun suivi). Le site affiche alors les **prochaines collectes** (ordures ménagères, emballages recyclables) avec leur date réelle, en tenant compte des semaines paires / impaires (numéro de semaine ISO), le **guichet France Services le plus proche** avec son état d’ouverture en direct, et propose d’**ajouter les collectes à son agenda** (fichier .ics récurrent, rappel la veille à 19h pour sortir les bacs). Sur la page des jours de collecte, la ligne de la commune est surlignée. Données extraites automatiquement du tableau de la page « Jours de collecte » : Aubenas, Mézilhac et Vals-les-Bains n’y figurent pas (renvoi vers la page).
+- **Recherche instantanée** : suggestions pendant la frappe (liste accessible au clavier, flèches + Entrée), lien « Tous les résultats » ; touche **/** pour rechercher depuis n’importe quelle page.
+- **Événements** : « Ajouter à mon agenda » (.ics) et « Partager » (partage natif du téléphone, sinon copie du lien) ; « Partager » aussi sur les actualités.
+- **Écouter la page** : lecture à voix haute des pages longues par la synthèse vocale du navigateur, paragraphe par paragraphe, avec surlignage du passage lu ; pause, reprise, arrêt. Message explicite si l’appareil ne dispose pas de voix française.
+
 ## Charte graphique
 
 - Rouge pêche `#E14248`, Cassis `#5E3A4F`, Marron glacé `#C6B09C`, fond clair crème.

@@ -594,3 +594,312 @@
   }
   upd(); setInterval(upd, 60000);
 })();
+
+/* ==========================================================================
+   « Ma commune » : prochaines collectes, guichet France Services le plus proche,
+   ajout des collectes à l'agenda (.ics). Le choix est mémorisé sur l'appareil
+   uniquement (localStorage), sans compte ni suivi.
+   ========================================================================== */
+(function () {
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('[data-mycom]'));
+  var dataEl = document.getElementById('mycom-data');
+  if (!boxes.length || !dataEl) return;
+  var D = JSON.parse(dataEl.textContent), ROOT = document.body.getAttribute('data-root') || './';
+  var KEY = 'ccba-commune';
+  var get = function () { try { return localStorage.getItem(KEY); } catch (e) { return null; } };
+  var set = function (v) { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch (e) {} };
+  var JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  var MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  // date « du jour » à Paris (minuit local)
+  function today() {
+    var p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()).split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
+  }
+  function isoWeek(d) {
+    var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), n = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - n);
+    return Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+  }
+  var wd = function (d) { return d.getDay() || 7; };
+  function next(rules) {
+    if (!rules || rules === 'point') return null;
+    var t = today();
+    for (var k = 0; k < 15; k++) {
+      var d = new Date(t); d.setDate(t.getDate() + k);
+      var ok = rules.some(function (r) { return r[0] === wd(d) && (r[1] === null || isoWeek(d) % 2 === r[1]); });
+      if (ok) return { d: d, k: k };
+    }
+    return null;
+  }
+  function when(n) {
+    if (!n) return '';
+    var lab = n.k === 0 ? 'aujourd’hui' : n.k === 1 ? 'demain' : JOURS[n.d.getDay()] + ' ' + (n.d.getDate() === 1 ? '1er' : n.d.getDate()) + ' ' + MOIS[n.d.getMonth()];
+    return lab;
+  }
+  function rhythm(rules) {
+    if (!rules || rules === 'point') return '';
+    return rules.map(function (r) { return ['', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'][r[0]] + (r[1] === null ? '' : r[1] === 0 ? ' (semaines paires)' : ' (semaines impaires)'); }).join(' et ');
+  }
+  function fsState(f) {
+    var parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).formatToParts(new Date());
+    var g = function (t) { return (parts.filter(function (p) { return p.type === t; })[0] || {}).value; };
+    var w = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday')), d = w === 0 ? 7 : w, m = (+g('hour') % 24) * 60 + +g('minute');
+    var mins = function (s) { var x = s.split(':'); return +x[0] * 60 + +x[1]; };
+    var hh = function (v) { var h = Math.floor(v / 60), r = v % 60; return h + 'h' + (r ? String(r).padStart(2, '0') : ''); };
+    var o = (f.h[d] || []).filter(function (r) { return m >= mins(r[0]) && m < mins(r[1]); })[0];
+    if (o) return { open: true, t: 'ouvert jusqu’à ' + hh(mins(o[1])) };
+    for (var k = 0; k <= 7; k++) {
+      var dd = ((d - 1 + k) % 7) + 1, best = null;
+      (f.h[dd] || []).forEach(function (r) { var s = mins(r[0]); if ((k > 0 || s > m) && (best === null || s < best)) best = s; });
+      if (best !== null) return { open: false, t: 'fermé · ouvre ' + (k === 0 ? '' : k === 1 ? 'demain ' : ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][dd % 7] + ' ') + 'à ' + hh(best) };
+    }
+    return { open: false, t: 'fermé' };
+  }
+  function foldIcs(txt) {
+    return txt.split('\r\n').map(function (l) { var out = []; while (l.length > 72) { out.push(l.slice(0, 72)); l = ' ' + l.slice(72); } out.push(l); return out.join('\r\n'); }).join('\r\n');
+  }
+  window.CCBA_foldIcs = foldIcs;
+  function ics(c) {
+    var pad = function (n) { return String(n).padStart(2, '0'); };
+    var ymd = function (d) { return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()); };
+    var stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+    var BY = ['', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+    var ev = [];
+    [['om', 'Collecte des ordures ménagères', 'bac des ordures ménagères'], ['re', 'Collecte des emballages recyclables', 'bac des emballages recyclables']].forEach(function (t) {
+      var rules = c[t[0]]; if (!rules || rules === 'point') return;
+      rules.forEach(function (r) {
+        var n = next([r]); if (!n) return;
+        ev.push(['BEGIN:VEVENT', 'UID:' + t[0] + '-' + c.s + '-' + r[0] + '@bassin-aubenas', 'DTSTAMP:' + stamp,
+          'DTSTART;VALUE=DATE:' + ymd(n.d), 'RRULE:FREQ=WEEKLY;INTERVAL=' + (r[1] === null ? 1 : 2) + ';BYDAY=' + BY[r[0]],
+          'SUMMARY:' + t[1] + ' – ' + c.n, 'DESCRIPTION:Pensez à sortir le ' + t[2] + ' la veille au soir. Source : Communauté de Communes du Bassin d’Aubenas.',
+          'TRANSP:TRANSPARENT', 'BEGIN:VALARM', 'ACTION:DISPLAY', 'TRIGGER:-PT5H', 'DESCRIPTION:Sortir le ' + t[2] + ' ce soir', 'END:VALARM', 'END:VEVENT'].join('\r\n'));
+      });
+    });
+    return foldIcs(['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CCBA//Collectes ' + c.n + '//FR', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Collectes – ' + c.n].concat(ev, ['END:VCALENDAR']).join('\r\n'));
+  }
+  function download(name, text) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/calendar;charset=utf-8' }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  var opts = D.communes.map(function (c) { return '<option value="' + c.s + '">' + esc(c.n) + '</option>'; }).join('');
+  function render(box, slug) {
+    var c = D.communes.filter(function (x) { return x.s === slug; })[0];
+    box.hidden = false;
+    if (!c) {
+      box.classList.remove('is-set');
+      box.innerHTML = '<p class="mc-k">Personnaliser</p><label class="mc-l" for="mc-' + box._id + '">Ma commune</label>' +
+        '<div class="mc-pick"><select id="mc-' + box._id + '"><option value="">— Choisir —</option>' + opts + '</select></div>' +
+        '<p class="mc-help">Vos prochaines collectes et le guichet France Services le plus proche. Choix mémorisé sur cet appareil uniquement.</p>';
+      box.querySelector('select').addEventListener('change', function () { if (this.value) { set(this.value); all(); box.setAttribute('tabindex', '-1'); box.focus(); } });
+      return;
+    }
+    box.classList.add('is-set');
+    var om = next(c.om), re = next(c.re), f = D.fs[c.fs], st = fsState(f);
+    var line = function (label, rules, n) {
+      if (rules === 'point') return '<li><span class="mc-t">' + label + '</span><span class="mc-v">Point de regroupement</span></li>';
+      if (!rules) return '<li><span class="mc-t">' + label + '</span><span class="mc-v"><a href="' + ROOT + D.cu + '">voir les jours de collecte</a></span></li>';
+      return '<li><span class="mc-t">' + label + '</span><span class="mc-v"><strong>' + when(n) + '</strong><small>' + rhythm(rules).replace(' (semaines paires)', ', sem. paires').replace(' (semaines impaires)', ', sem. impaires') + '</small></span></li>';
+    };
+    var canIcs = (c.om && c.om !== 'point') || (c.re && c.re !== 'point');
+    box.innerHTML = '<p class="mc-k">Ma commune</p>' +
+      '<p class="mc-head"><a class="mc-name" href="' + ROOT + c.u + '">' + esc(c.n) + '</a><button type="button" class="mc-change">Changer</button></p>' +
+      '<ul class="mc-list">' + line('Ordures', c.om, om) + line('Recyclables', c.re, re) +
+      '<li><span class="mc-t">France Services</span><span class="mc-v"><a href="' + ROOT + D.fsu + '">' + esc(f.n) + '</a><small class="' + (st.open ? 'is-open' : '') + '">' + st.t + '</small></span></li></ul>' +
+      (canIcs ? '<div class="mc-foot"><button type="button" class="mc-ics"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>Ajouter à mon agenda</button><p class="mc-help">Rappel la veille à 19h pour sortir les bacs.</p></div>' : '');
+    box.querySelector('.mc-change').addEventListener('click', function () { set(null); all(); var s = box.querySelector('select'); s && s.focus(); });
+    var b = box.querySelector('.mc-ics');
+    if (b) b.addEventListener('click', function () { download('collectes-' + c.s + '.ics', ics(c)); });
+    // page des jours de collecte : mise en évidence de la ligne de la commune
+    Array.prototype.forEach.call(document.querySelectorAll('.prose tr'), function (tr) {
+      var first = tr.querySelector('td'); if (!first) return;
+      var norm = function (s) { return s.toLowerCase().replace(/[’']/g, ' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]+/g, ' ').trim(); };
+      tr.classList.toggle('is-mine', norm(first.textContent) === norm(c.n));
+    });
+  }
+  function all() { var v = get(); boxes.forEach(function (b, i) { b._id = i; render(b, v); }); }
+  all();
+})();
+
+/* ==========================================================================
+   Recherche instantanée : suggestions pendant la frappe (combobox accessible)
+   et raccourci clavier « / » pour rechercher depuis n'importe quelle page.
+   ========================================================================== */
+(function () {
+  var ROOT = document.body.getAttribute('data-root') || './';
+  var inputs = ['q-top', 'q-hero'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  var DATA = null, loading = null;
+  var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' '); };
+  var escH = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function load() {
+    if (DATA || loading) return loading;
+    loading = fetch(ROOT + 'search-index.json').then(function (r) { return r.json(); }).then(function (d) { DATA = d; return d; }).catch(function () { loading = null; });
+    return loading;
+  }
+  function search(q) {
+    var terms = norm(q).split(/\s+/).filter(function (t) { return t.length > 1; });
+    if (!terms.length || !DATA) return [];
+    var out = [];
+    DATA.forEach(function (d) {
+      var t = norm(d.t), x = norm(d.x), k = norm(d.k || ''), r = norm(d.r || ''), s = 0, all = true;
+      terms.forEach(function (w) {
+        var hit = 0;
+        if (t.indexOf(w) > -1) hit += (t.indexOf(w) === 0 ? 14 : 10);
+        if (k.indexOf(w) > -1) hit += 5;
+        if (r.indexOf(w) > -1) hit += 3;
+        if (x.indexOf(w) > -1) hit += 2;
+        if (!hit) all = false; s += hit;
+      });
+      if (s && all) { if (d.r === 'Actualité' || d.r === 'Agenda') s -= 4; out.push([s, d]); }
+    });
+    out.sort(function (a, b) { return b[0] - a[0]; });
+    return out.slice(0, 6).map(function (e) { return e[1]; });
+  }
+  var hl = function (s, q) {
+    var out = escH(s);
+    norm(q).split(/\s+/).filter(function (t) { return t.length > 1; }).forEach(function (w) {
+      var src = norm(s), i = src.indexOf(w);
+      if (i > -1) { var seg = s.substr(i, w.length); out = out.replace(escH(seg), '<mark>' + escH(seg) + '</mark>'); }
+    });
+    return out;
+  };
+  inputs.forEach(function (inp, n) {
+    var form = inp.closest('form'), list = document.createElement('ul'), active = -1, items = [];
+    list.className = 'suggest'; list.id = 'sg-' + n; list.setAttribute('role', 'listbox'); list.hidden = true;
+    form.appendChild(list);
+    inp.setAttribute('role', 'combobox'); inp.setAttribute('aria-autocomplete', 'list');
+    inp.setAttribute('aria-expanded', 'false'); inp.setAttribute('aria-controls', list.id);
+    function close() { list.hidden = true; inp.setAttribute('aria-expanded', 'false'); inp.removeAttribute('aria-activedescendant'); active = -1; }
+    function setActive(i) {
+      var lis = list.querySelectorAll('[role="option"]');
+      active = (i + lis.length) % lis.length;
+      Array.prototype.forEach.call(lis, function (li, k) { li.setAttribute('aria-selected', String(k === active)); });
+      inp.setAttribute('aria-activedescendant', lis[active].id);
+    }
+    function render() {
+      var q = inp.value.trim();
+      if (q.length < 2) { close(); return; }
+      var res = search(q); items = res;
+      var html = res.map(function (d, i) {
+        return '<li role="option" id="' + list.id + '-' + i + '" aria-selected="false"><a href="' + ROOT + d.u + (d.u ? '/' : '') + '" tabindex="-1"><span class="sg-t">' + hl(d.t, q) + '</span><span class="sg-r">' + escH(d.r || 'Page') + '</span></a></li>';
+      }).join('');
+      html += res.length ? '<li role="option" class="sg-all" id="' + list.id + '-all" aria-selected="false"><a href="' + form.getAttribute('action') + '?q=' + encodeURIComponent(q) + '" tabindex="-1">Tous les résultats pour « ' + escH(q) + ' »</a></li>'
+                         : '<li class="sg-empty">Aucune suggestion : appuyez sur Entrée pour lancer la recherche.</li>';
+      list.innerHTML = html; list.hidden = false; inp.setAttribute('aria-expanded', 'true'); active = -1;
+    }
+    inp.addEventListener('focus', load);
+    inp.addEventListener('input', function () { var p = load(); if (DATA) render(); else if (p) p.then(render); });
+    inp.addEventListener('keydown', function (e) {
+      if (list.hidden) return;
+      var lis = list.querySelectorAll('[role="option"]');
+      if (e.key === 'ArrowDown' && lis.length) { e.preventDefault(); setActive(active + 1); }
+      else if (e.key === 'ArrowUp' && lis.length) { e.preventDefault(); setActive(active - 1); }
+      else if (e.key === 'Enter' && active > -1) { e.preventDefault(); location.href = lis[active].querySelector('a').href; }
+      else if (e.key === 'Escape') { e.stopPropagation(); close(); }
+    });
+    inp.addEventListener('blur', function () { setTimeout(close, 180); });
+  });
+  // raccourci « / »
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target, tag = (t.tagName || '').toLowerCase();
+    if (tag === 'input' || tag === 'textarea' || tag === 'select' || t.isContentEditable) return;
+    e.preventDefault();
+    var hero = document.getElementById('q-hero');
+    if (hero) { var r = hero.getBoundingClientRect(); if (r.bottom > 0 && r.top < innerHeight) { hero.focus(); return; } }
+    var open = document.querySelector('[data-search-open]'), panel = document.getElementById('search-panel');
+    if (open && panel && panel.hidden) open.click();
+    var top = document.getElementById('q-top'); top && top.focus();
+  });
+  var sb = document.querySelector('[data-search-open]');
+  if (sb) { sb.setAttribute('aria-keyshortcuts', '/'); sb.setAttribute('title', 'Rechercher (raccourci : /)'); }
+})();
+
+/* Événements : ajouter à l'agenda (.ics) ; actualités et événements : partager */
+(function () {
+  Array.prototype.forEach.call(document.querySelectorAll('[data-share]'), function (b) {
+    b.hidden = false;
+    b.addEventListener('click', function () {
+      var data = { title: document.title, url: location.href };
+      if (navigator.share) { navigator.share(data).catch(function () {}); return; }
+      var done = function () { var t = b.lastChild.textContent; b.lastChild.textContent = 'Lien copié'; b.classList.add('is-done'); setTimeout(function () { b.lastChild.textContent = t; b.classList.remove('is-done'); }, 1800); };
+      if (navigator.clipboard) navigator.clipboard.writeText(location.href).then(done, function () { prompt('Copiez ce lien :', location.href); });
+      else prompt('Copiez ce lien :', location.href);
+    });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-ev]'), function (box) {
+    var b = box.querySelector('[data-ev-ics]'); if (!b) return;
+    b.addEventListener('click', function () {
+      var ev = JSON.parse(box.getAttribute('data-ev')), pad = function (n) { return String(n).padStart(2, '0'); };
+      var d = function (iso) { return iso.replace(/-/g, ''); };
+      var start, end;
+      if (ev.h && ev.s === ev.e) {
+        var dt = new Date(ev.s + 'T' + ev.h + ':00'), fin = new Date(dt.getTime() + 2 * 36e5);
+        var f = function (x) { return x.getFullYear() + pad(x.getMonth() + 1) + pad(x.getDate()) + 'T' + pad(x.getHours()) + pad(x.getMinutes()) + '00'; };
+        start = 'DTSTART:' + f(dt); end = 'DTEND:' + f(fin);
+      } else {
+        var e2 = new Date(ev.e + 'T12:00:00'); e2.setDate(e2.getDate() + 1);
+        start = 'DTSTART;VALUE=DATE:' + d(ev.s); end = 'DTEND;VALUE=DATE:' + e2.getFullYear() + pad(e2.getMonth() + 1) + pad(e2.getDate());
+      }
+      var escI = function (s) { return s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,'); };
+      var txt = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CCBA//Agenda//FR', 'BEGIN:VEVENT',
+        'UID:' + d(ev.s) + '-' + Math.abs(ev.t.split('').reduce(function (a, c) { return (a * 31 + c.charCodeAt(0)) | 0; }, 7)) + '@bassin-aubenas',
+        'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, ''), start, end,
+        'SUMMARY:' + escI(ev.t), 'URL:' + location.href, 'DESCRIPTION:' + escI('Plus d’informations : ' + location.href), 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      if (window.CCBA_foldIcs) txt = window.CCBA_foldIcs(txt);
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([txt], { type: 'text/calendar;charset=utf-8' }));
+      a.download = 'evenement-' + d(ev.s) + '.ics'; document.body.appendChild(a); a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    });
+  });
+})();
+
+/* ==========================================================================
+   Écouter la page : lecture à voix haute (synthèse vocale du navigateur),
+   paragraphe par paragraphe, avec surlignage du passage en cours.
+   ========================================================================== */
+(function () {
+  var prose = document.querySelector('.prose');
+  if (!prose || !('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) return;
+  var blocks = Array.prototype.slice.call(prose.querySelectorAll('h2, h3, h4, p, li, blockquote, figcaption'))
+    .filter(function (el) { return !el.closest('table') && !el.querySelector('p, li') && el.textContent.trim().length > 1; });
+  var words = prose.textContent.trim().split(/\s+/).length;
+  if (words < 160) return;
+  var h1 = document.querySelector('.page-head h1');
+  var bar = document.createElement('div'); bar.className = 'listen';
+  bar.innerHTML = '<button type="button" class="chip-btn listen-play" aria-pressed="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span>Écouter la page</span></button>' +
+    '<span class="listen-d">≈ ' + Math.max(1, Math.round(words / 150)) + ' min</span><button type="button" class="listen-stop" hidden>Arrêter</button>';
+  prose.parentNode.insertBefore(bar, prose);
+  var play = bar.querySelector('.listen-play'), lab = play.querySelector('span'), stop = bar.querySelector('.listen-stop');
+  var i = 0, state = 'idle', voice = null, seq = blocks, fails = 0;
+  var pick = function () { var v = speechSynthesis.getVoices().filter(function (x) { return /^fr/i.test(x.lang); }); voice = v.filter(function (x) { return /fr-FR/i.test(x.lang); })[0] || v[0] || null; };
+  pick(); if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = pick;
+  var mark = function (el) { blocks.concat(h1 ? [h1] : []).forEach(function (b) { b.classList.remove('is-reading'); }); if (el) { el.classList.add('is-reading'); var r = el.getBoundingClientRect(); if (r.top < 90 || r.bottom > innerHeight - 40) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } };
+  function speak() {
+    if (state !== 'playing') return;
+    if (i >= seq.length) { reset(); return; }
+    var el = seq[i], u = new SpeechSynthesisUtterance(el.textContent.replace(/\s+/g, ' ').trim());
+    u.lang = 'fr-FR'; if (voice) u.voice = voice; u.rate = 1;
+    u.onstart = function () { fails = 0; mark(el); };
+    u.onend = function () { if (state === 'playing') { i++; speak(); } };
+    u.onerror = function (e) {
+      if (state !== 'playing' || (e && (e.error === 'interrupted' || e.error === 'canceled'))) return;
+      if (++fails >= 3) { reset(); bar.querySelector('.listen-d').textContent = 'Lecture vocale indisponible sur cet appareil'; return; }
+      i++; speak();
+    };
+    speechSynthesis.speak(u);
+  }
+  function reset() { state = 'idle'; i = 0; speechSynthesis.cancel(); mark(null); lab.textContent = 'Écouter la page'; play.setAttribute('aria-pressed', 'false'); stop.hidden = true; bar.classList.remove('is-on'); }
+  play.addEventListener('click', function () {
+    if (state === 'idle') {
+      seq = (h1 ? [h1] : []).concat(blocks);
+      state = 'playing'; lab.textContent = 'Pause'; play.setAttribute('aria-pressed', 'true'); stop.hidden = false; bar.classList.add('is-on'); speechSynthesis.cancel(); speak();
+    } else if (state === 'playing') { state = 'paused'; speechSynthesis.pause(); lab.textContent = 'Reprendre'; play.setAttribute('aria-pressed', 'false'); }
+    else { state = 'playing'; speechSynthesis.resume(); lab.textContent = 'Pause'; play.setAttribute('aria-pressed', 'true'); }
+  });
+  stop.addEventListener('click', reset);
+  window.addEventListener('pagehide', function () { speechSynthesis.cancel(); });
+})();
