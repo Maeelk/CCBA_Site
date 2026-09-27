@@ -127,7 +127,11 @@ document.addEventListener('DOMContentLoaded', function () {
       '<span>' + esc(l.label) + '</span>' + (ext ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8M18 14v5H5V6h5"/></svg><span class="sr-only"> (site externe, nouvelle fenêtre)</span>'
         : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>') + '</a>';
   }
+  var TODAY = new Date().toISOString().slice(0, 10);
+  var alive = function (x) { return !(x && typeof x === 'object' && x.u && x.u < TODAY); };   // éléments datés : masqués une fois passés
+  var html = function (x) { return typeof x === 'object' ? x.h : x; };
   function resultHTML(j, r, path) {
+    r = Object.assign({}, r, { points: r.points.filter(alive).map(html), steps: r.steps.filter(alive).map(html), links: r.links.filter(alive) });
     var internal = r.links.filter(function (l) { return l.url; }), others = r.links.filter(function (l) { return l !== internal[0]; });
     return '<article class="jv-res">' +
       '<p class="jv-res-k">Votre réponse</p><h2 class="jv-h" tabindex="-1">' + esc(r.title) + '</h2>' +

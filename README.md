@@ -84,6 +84,28 @@ La carte des 28 communes (accueil, page « Nos 28 communes », encart « Situer�
 - **Légende** : échelle des altitudes par tranches de 100 m, sous les cartes de l’accueil et de la page « Nos 28 communes ». La coloration par population de la page « Nos 28 communes » a été retirée : les chiffres de population restent dans la liste des communes et dans la fiche express.
 - **Réglages** (en tête de `terrain.py`) : exagération `EX`, équidistance `LEVELS`, teintes `STOPS`, projection `AZ`/`TI`. Mettre à jour les altitudes : relancer la collecte IGN (service `elevationLine`, une requête par ligne de la grille) et remplacer `data/dem/dem.npy`.
 
+## Corrections et compléments (version 3.13)
+
+### Corrections des contenus hérités (`corrections.py`, appliquées au build)
+Chaque correction est déclarée avec sa raison et sa source ; le build signale celles qui ne trouvent plus leur texte (page source modifiée).
+- **Liens réparés** : redirections Google (lien de la médiathèque), domaine erroné `impots-gouv.fr` → `impots.gouv.fr`, OUI.sncf → SNCF Connect, 3 délibérations de 2020 dont le lien pointait vers le titre du fichier au lieu du PDF, lien « petit guide » des marchés publics qui pointait vers un dossier du réseau interne (→ Guide entreprises 2026), lien malformé vers la grotte Chauvet retiré.
+- **Textes mis à jour** : Tout’enbus dessert 11 communes et non 6 (page Mobilité, liste de 2007 ; source : toutenbus.fr) ; « Pôle emploi » → « France Travail (ex-Pôle emploi) » ; TER « Rhône-Alpes » → « Auvergne-Rhône-Alpes » ; conditions Visale harmonisées entre « Logement des jeunes » et « Garantir son loyer » (renvoi vers visale.fr) ; numéros de téléphone mal saisis (CCI, FORMAT) ; texte alternatif de l’organigramme.
+- **Redirections réparées** : 4 anciennes adresses menaient à des pages inexistantes (bourse au foncier, dépôt d’annonce, page de gestion, dépôt de demande d’urbanisme) ; 5 pages parasites de l’ancien site (doublon de la page Contact, confirmation de formulaire, 2 pages vides, un essai d’intégration) sont retirées et redirigées vers la bonne page.
+
+### Compléments
+- **Bourse au foncier et à l’immobilier d’entreprise** (`bourse.py`) : elle était gérée par une extension WordPress et avait disparu. Les **34 annonces publiées** de l’export sont reprises : liste filtrable (commune, type de bien, location / vente, recherche tolérante) sur la page « Foncier et immobilier d’entreprise », une page par annonce (photos, description, surface, prix, référence, contact du service économie), anciennes adresses `/advert/…` redirigées. Une annonce expirée est masquée automatiquement. Les propriétaires proposent une annonce au service économie (courriel, téléphone) : il n’y a plus de formulaire. Location ou vente est déduite du montant (moins de 20 000 € : loyer). **À faire** : exporter à nouveau les annonces lors de la mise en production.
+- **Rubriques vides** (« Contenu en cours de rédaction ») : Se loger, Gens du voyage, Politique de l’habitat, Documents d’urbanisme deviennent des sommaires des pages existantes ; liens « Voir aussi » ajoutés sur Covoiturage, Cadastre solaire et Foncier.
+- **Déclaration d’accessibilité** : l’ancienne page ne contenait que « lorem ipsum ». Elle est rédigée selon le modèle RGAA (état de conformité, mesures prises, contenus non accessibles connus, contact, voies de recours). Faute d’audit, le site est déclaré **non conforme** (obligation du RGAA) ; le pied de page l’indique désormais. **À faire** : programmer un audit RGAA.
+- **Ma commune** : pour Mézilhac, l’encadré indique que la collecte est assurée par le SICTOMSED ; pour Aubenas et Vals-les-Bains (absentes du tableau des collectes), il propose le numéro gratuit du service collecte.
+- **Agenda vide** : liens vers la médiathèque et l’office de tourisme en plus des actualités.
+- **« Je veux… »** : les informations datées portent une date de fin (Semaine Bleue 2026, planning des encombrants 2026) et disparaissent d’elles-mêmes ; la liste complète des 11 communes Tout’enbus est donnée.
+
+### Points à faire trancher par les services
+- **Transport à la demande** : la page TAD cite Fons parmi les communes « non desservies par Tout’enbus », alors que Tout’enbus (site officiel) dessert Fons. Le texte n’a pas été modifié : à confirmer (Fons est-elle bien dans le périmètre du TAD ?).
+- **Relais Petite Enfance** : Saint-Didier-sous-Aubenas figure dans les listes Nord et Sud, et Saint-Sernin dans aucune (la même erreur existe sur le site actuel). Probablement Saint-Sernin au Sud : à confirmer avant de corriger.
+- **Organigramme** : image d’octobre 2020 (d’après le nom du fichier), sans version texte.
+- **Collectes d’Aubenas et de Vals-les-Bains** : absentes du tableau « Jours de collecte ».
+
 ## Recherche tolérante et « Je veux… » (version 3.12)
 
 ### Recherche tolérante (`CCBAFind`, en tête de `assets/js/site.js`)

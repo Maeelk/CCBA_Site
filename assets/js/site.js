@@ -975,7 +975,8 @@ var CCBAFind = (function () {
     var om = next(c.om), re = next(c.re), f = D.fs[c.fs], st = fsState(f);
     var line = function (label, rules, n) {
       if (rules === 'point') return '<li><span class="mc-t">' + label + '</span><span class="mc-v">Point de regroupement</span></li>';
-      if (!rules) return '<li><span class="mc-t">' + label + '</span><span class="mc-v"><a href="' + ROOT + D.cu + '">voir les jours de collecte</a></span></li>';
+      if (!rules && c.nt === 'sictomsed') return '<li><span class="mc-t">' + label + '</span><span class="mc-v">Collecte assurée par le SICTOMSED<small><a href="http://www.sictomsed.fr/" target="_blank" rel="noopener">sictomsed.fr</a></small></span></li>';
+      if (!rules) return '<li><span class="mc-t">' + label + '</span><span class="mc-v"><a href="' + ROOT + D.cu + '">voir les jours de collecte</a><small>ou service collecte : <a href="tel:+33800076015">0 800 07 60 15</a> (gratuit)</small></span></li>';
       return '<li><span class="mc-t">' + label + '</span><span class="mc-v"><strong>' + when(n) + '</strong><small>' + rhythm(rules).replace(' (semaines paires)', ', sem. paires').replace(' (semaines impaires)', ', sem. impaires') + '</small></span></li>';
     };
     var canIcs = (c.om && c.om !== 'point') || (c.re && c.re !== 'point');
@@ -1263,4 +1264,38 @@ var CCBA3D = (function () {
     });
   }
   return { P: P };
+})();
+
+/* ==========================================================================
+   Bourse au foncier et à l'immobilier d'entreprise : filtres des annonces et
+   masquage des annonces expirées (le site est statique : la date du jour est
+   celle du visiteur).
+   ========================================================================== */
+(function () {
+  var today = new Date().toISOString().slice(0, 10);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-exp]'), function (el) {
+    var exp = el.getAttribute('data-exp');
+    if (!exp || exp >= today) return;
+    if (el.classList.contains('b-card')) { el.classList.add('is-expired'); el.hidden = true; }
+    else { var n = el.querySelector('.b-expired'); if (n) n.hidden = false; }
+  });
+  var box = document.querySelector('[data-bourse]');
+  if (!box) return;
+  var cards = Array.prototype.slice.call(box.querySelectorAll('.b-card:not(.is-expired)'));
+  var count = box.querySelector('[data-b-count]'), empty = box.querySelector('.b-empty');
+  var val = function (k) { var el = box.querySelector('[data-bf="' + k + '"]' + (k === 't' ? ':checked' : '')); return el ? el.value : ''; };
+  var find = function (q) { return window.CCBAFind ? CCBAFind.matcher(q) : function (t) { return t.toLowerCase().indexOf(q.toLowerCase()) > -1 ? 1 : 0; }; };
+  function run() {
+    var q = val('q').trim(), c = val('c'), k = val('k'), t = val('t'), m = find(q), n = 0;
+    cards.forEach(function (li) {
+      var ok = (!c || li.getAttribute('data-commune') === c) && (!t || li.getAttribute('data-kind') === t) &&
+        (!k || li.getAttribute('data-cats').split('|').some(function (x) { return x === k || x + 's' === k || x === k + 's' || x.replace(/s$/, '') === k.replace(/s$/, ''); })) &&
+        (!q || m(li.getAttribute('data-text')) > 0);
+      li.hidden = !ok; if (ok) n++;
+    });
+    count.textContent = n + ' annonce' + (n > 1 ? 's' : '') + (n === cards.length ? '' : ' sur ' + cards.length);
+    empty.hidden = n > 0;
+  }
+  box.addEventListener('input', run); box.addEventListener('change', run);
+  run();
 })();

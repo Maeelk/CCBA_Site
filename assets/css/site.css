@@ -1446,3 +1446,50 @@ html:not(.js) .jv-find { display: none; }
   .jv-card .jv-n { margin-top: 0; }
   .jv-card.is-more .jv-more-l { grid-column: 2; }
 }
+
+/* ==========================================================================
+   Bourse au foncier et à l'immobilier d'entreprise (bourse.py)
+   ========================================================================== */
+.bourse .lead { max-width: 44em; }
+.b-filters { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(2, minmax(0, 1fr)) auto; gap: 12px 16px; align-items: end; margin: 26px 0 8px; padding: 18px; background: var(--paper-2); border-radius: 14px; }
+.b-f { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.b-f label, .b-f legend { font-weight: 700; font-size: 13.5px; color: var(--cassis); padding: 0; }
+.b-f input[type="search"], .b-f select { width: 100%; height: 44px; padding: 0 12px; border: 1px solid var(--line-2); border-radius: 10px; background-color: var(--surface); font: 16px var(--f-body); color: var(--ink); }
+.b-f select { padding-right: 38px; }
+.b-seg { flex-direction: row; flex-wrap: wrap; gap: 0; align-self: end; }
+.b-seg legend { margin-bottom: 6px; }
+.b-seg label { position: relative; }
+.b-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.b-seg span { display: inline-flex; align-items: center; height: 44px; padding: 0 14px; border: 1px solid var(--line-2); background: var(--surface); font-size: 14.5px; font-weight: 700; color: var(--cassis); white-space: nowrap; }
+.b-seg label:first-of-type span { border-radius: 10px 0 0 10px; } .b-seg label:last-of-type span { border-radius: 0 10px 10px 0; }
+.b-seg label + label span { border-left: 0; }
+.b-seg input:checked + span { background: var(--cassis); border-color: var(--cassis); color: #fff; }
+.b-seg input:focus-visible + span { outline: 2px solid var(--peche); outline-offset: 2px; }
+.b-count { font-size: 14px; color: var(--muted); margin: 8px 0 14px; }
+.b-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 16px; }
+.b-card { display: flex; }
+.b-link { position: relative; flex: 1; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; color: var(--ink); text-decoration: none; transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out); }
+.b-link:hover, .b-link:focus-visible { transform: translateY(-4px); box-shadow: 0 22px 40px -30px rgba(94, 58, 79, .6); color: var(--ink); }
+.b-media { aspect-ratio: 4 / 3; }
+.b-media img { width: 100%; height: 100%; object-fit: cover; }
+.b-badges { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.b-badge { padding: 4px 9px; border-radius: 999px; background: rgba(255, 255, 255, .92); color: var(--cassis); font-size: 12.5px; font-weight: 700; box-shadow: 0 2px 8px rgba(37, 26, 33, .12); }
+.b-badge.b-louer { background: var(--cassis); color: #fff; } .b-badge.b-vendre { background: var(--peche-d); color: #fff; }
+.b-body { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; }
+.b-where { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--muted); }
+.b-where .ico { width: 15px; height: 15px; color: var(--peche); flex: none; }
+.b-title { font: 700 17px/1.3 var(--f-title); color: var(--cassis); }
+.b-price { margin-top: auto; font-weight: 700; font-size: 15px; }
+.b-empty { padding: 18px; border: 1px dashed var(--line-2); border-radius: 12px; color: var(--muted); }
+.b-post { margin-top: 40px; padding: clamp(20px, 3vw, 32px); border-radius: 16px; background: var(--cassis-l); }
+.b-post h2 { margin: 0 0 8px; font-size: clamp(22px, 2.2vw, 28px); }
+.b-post-c { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+.b-gallery { list-style: none; margin: 0 0 24px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 8px; }
+.b-gallery li:first-child { grid-column: 1 / -1; }
+.b-gallery .b-photo { border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3; }
+.b-gallery li:first-child .b-photo { aspect-ratio: 16 / 9; }
+.b-gallery img { width: 100%; height: 100%; object-fit: cover; }
+.b-expired { padding: 12px 16px; border-left: 3px solid var(--peche); background: var(--peche-l); font-weight: 700; }
+.b-contact p { margin: 0 0 8px; }
+@media (max-width: 900px) { .b-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .b-filters .b-f:first-child, .b-seg { grid-column: 1 / -1; } }
+@media (max-width: 520px) { .b-filters { grid-template-columns: minmax(0, 1fr); } }
