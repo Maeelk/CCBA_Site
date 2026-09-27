@@ -1,4 +1,255 @@
 /* CCBA – scripts du site (vanilla JS, aucune dépendance, compatible GitHub Pages) */
+
+/* ==========================================================================
+   CCBAFind — moteur de recherche tolérant, entièrement dans le navigateur.
+   Index statique (search-index.json : titre t, extrait x, mots-clés k,
+   rubrique r, mots caractéristiques du texte b). Pour chaque mot saisi :
+   · mots vides ignorés (« comment inscrire mon enfant » → inscrire, enfant) ;
+   · singulier / pluriel, début de mot (recherche pendant la frappe) ;
+   · fautes de frappe (distance d'édition 1, ou 2 pour les mots longs) ;
+   · synonymes du quotidien (« poubelle » → collecte, ordures ménagères…).
+   Toutes les pages doivent contenir tous les mots ; sinon on propose les
+   plus proches. Aucune requête vers un service extérieur.
+   ========================================================================== */
+var CCBAFind = (function () {
+  'use strict';
+  var STOP = {};
+  ('a au aux avec ce ces cet cette dans de des du elle en et il ils je j la le les leur lui ma me mes moi mon ne nos notre nous on ou par pas pour qu que qui sa se ses son sur ta te tes ton tu un une vos votre vous c d l m n s t y est sont etre avoir ai as faire fais veux voudrais souhaite souhaiterais besoin comment quand quel quelle quels quelles ou combien pourquoi puis peux peut dois doit il faut chez mais donc car si').split(' ').forEach(function (w) { STOP[w] = 1; });
+  /* synonymes : clé (mot ou expression normalisés) → expressions cherchées à la place
+     (chaque expression doit apparaître en entier dans la page) */
+  var SYN = {
+    'poubelle': ['collecte', 'ordures menageres', 'dechets'], 'poubelles': ['collecte', 'ordures menageres', 'dechets'],
+    'ordure': ['ordures menageres'], 'ramassage': ['collecte'], 'eboueur': ['collecte'], 'benne': ['collecte', 'encombrants'],
+    'bac jaune': ['tri', 'emballages recyclables'], 'sac jaune': ['tri', 'emballages recyclables'], 'recyclage': ['tri', 'recyclables'], 'recycler': ['tri', 'recyclables'],
+    'decheterie': ['decheterie', 'dechetterie'], 'dechetterie': ['decheterie', 'dechetterie'], 'deposer dechets': ['decheterie', 'dechetterie'],
+    'monstre': ['encombrants'], 'meuble': ['encombrants'], 'matelas': ['encombrants'], 'frigo': ['encombrants'], 'electromenager': ['encombrants'],
+    'compost': ['compostage'], 'composteur': ['compostage'], 'composter': ['compostage'], 'dechets verts': ['compostage', 'decheterie'],
+    'piscine': ['centre aquatique', 'hippocampe'], 'nager': ['centre aquatique', 'hippocampe'], 'natation': ['centre aquatique', 'hippocampe'], 'baignade': ['centre aquatique', 'hippocampe'],
+    'bibliotheque': ['mediatheque'], 'livre': ['mediatheque'], 'livres': ['mediatheque'], 'lecture': ['mediatheque'], 'emprunter': ['mediatheque'],
+    'spectacle': ['theatre', 'agenda'], 'concert': ['agenda'], 'sortie': ['agenda'], 'sortir': ['agenda'],
+    'balade': ['randonnees'], 'rando': ['randonnees'], 'randonnee': ['randonnees'], 'sentier': ['randonnees'], 'marche a pied': ['randonnees'],
+    'bus': ['tout enbus', 'transport'], 'autobus': ['tout enbus'], 'navette': ['tout enbus', 'transport a la demande'], 'autocar': ['tout enbus', 'transport'],
+    'tad': ['transport a la demande'], 'velo': ['velo', 'voies douces'], 'vae': ['velo electrique'], 'covoit': ['covoiturage'], 'voie verte': ['voies douces'], 'piste cyclable': ['voies douces'],
+    'creche': ['creche', 'multi accueil'], 'garderie': ['creche', 'multi accueil'], 'nounou': ['assistante maternelle', 'relais petite enfance'], 'nourrice': ['assistante maternelle', 'relais petite enfance'],
+    'assistante maternelle': ['assistante maternelle', 'relais petite enfance'], 'assmat': ['relais petite enfance'], 'mode de garde': ['creche', 'relais petite enfance'], 'garde enfant': ['creche', 'relais petite enfance'], 'bebe': ['petite enfance'],
+    'centre aere': ['centres de loisirs'], 'alsh': ['centres de loisirs'], 'vacances enfants': ['centres de loisirs', 'stages multisports'], 'mercredi enfants': ['centres de loisirs'],
+    'cantine': ['ecoles'], 'college': ['ecoles'], 'lycee': ['ecoles'], 'ado': ['jeunesse'], 'adolescent': ['jeunesse'], 'jeune': ['jeunesse'],
+    'permis de construire': ['permis de construire', 'autorisations d urbanisme'], 'construire': ['autorisations d urbanisme', 'permis de construire'], 'construction': ['autorisations d urbanisme'],
+    'travaux': ['travaux', 'autorisations d urbanisme'], 'agrandir': ['autorisations d urbanisme'], 'extension': ['autorisations d urbanisme'], 'veranda': ['autorisations d urbanisme'], 'cloture': ['autorisations d urbanisme'], 'abri de jardin': ['autorisations d urbanisme'],
+    'declaration prealable': ['declaration prealable', 'autorisations d urbanisme'], 'plu': ['plui', 'documents d urbanisme'], 'cadastre': ['urbanisme'], 'terrain': ['urbanisme', 'foncier'],
+    'fosse septique': ['assainissement non collectif'], 'fosse': ['assainissement non collectif'], 'spanc': ['assainissement non collectif'], 'anc': ['assainissement non collectif'], 'vidange': ['assainissement non collectif'],
+    'maison': ['logement', 'habitation', 'construire'], 'logement': ['logement', 'habitat'], 'appartement': ['logement'], 'louer': ['logement', 'loyer'], 'location': ['logement', 'loyer'], 'hlm': ['logement social'], 'garant': ['garantir son loyer', 'visale'],
+    'renovation': ['renover', 'ameliorer son logement'], 'renover': ['renover', 'ameliorer son logement'], 'isolation': ['ameliorer son logement', 'renovation'], 'insalubre': ['habitat indigne'], 'insalubrite': ['habitat indigne'],
+    'emploi': ['offres d emploi', 'recrutement'], 'job': ['offres d emploi'], 'travail': ['offres d emploi', 'emploi'], 'recrute': ['recrutement'], 'candidature': ['recrutement', 'offres d emploi'], 'stage': ['stage', 'recrutement'],
+    'appel d offres': ['marches publics'], 'appel d offre': ['marches publics'], 'marche public': ['marches publics'],
+    'mairie': ['communes', 'mairie'], 'maire': ['maire', 'communes'], 'elu': ['elus'], 'conseil': ['conseil communautaire'], 'compte rendu': ['deliberations', 'proces verbaux'], 'deliberation': ['deliberations'],
+    'telephone': ['contact'], 'tel': ['contact'], 'joindre': ['contact'], 'adresse': ['contact'], 'mail': ['contact'], 'horaire': ['horaires'], 'ouverture': ['horaires'],
+    'carte grise': ['france services'], 'caf': ['france services'], 'impot': ['france services'], 'impots': ['france services'], 'retraite': ['france services', 'seniors'], 'rsa': ['france services'], 'papiers': ['france services'], 'demarche administrative': ['france services'], 'ants': ['france services'], 'cpam': ['france services'],
+    'personne agee': ['seniors'], 'personnes agees': ['seniors'], 'aine': ['seniors'], 'vieillir': ['seniors'], 'aidant': ['seniors'],
+    'internet': ['numerique', 'fibre'], 'wifi': ['numerique', 'fibre'], 'haut debit': ['fibre'],
+    'route': ['voirie', 'routes intercommunales'], 'nid de poule': ['voirie'], 'chaussee': ['voirie'],
+    'subvention': ['subvention', 'aides'], 'financement': ['aides', 'subvention'], 'asso': ['associations'],
+    'societe': ['entreprise'], 'creer entreprise': ['creer', 'implanter'], 'auto entrepreneur': ['entreprise', 'creer'], 'bureau': ['coworking', 'immobilier d entreprise'], 'local': ['immobilier d entreprise', 'foncier'],
+    'gite': ['taxe de sejour', 'hebergements touristiques'], 'chambre d hote': ['taxe de sejour', 'hebergements touristiques'], 'meuble de tourisme': ['taxe de sejour'], 'airbnb': ['taxe de sejour'],
+    'tourisme': ['tourisme', 'office de tourisme'], 'caravane': ['gens du voyage'], 'inondation': ['gemapi'], 'riviere': ['gemapi', 'eau'], 'solaire': ['cadastre solaire'], 'panneau solaire': ['cadastre solaire'], 'climat': ['plan climat'],
+    'aide': ['aide', 'accompagnement']
+  };
+  var F = { t: 10, k: 5, r: 3, x: 2, b: 1.2 };
+  var DATA = null, INV = null, VOCAB = null, DISP = null, loading = null, CACHE = {};
+
+  function norm(s) {
+    return (s || '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[’'`\-_/]/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+  function toks(s) { var n = norm(s); return n ? n.split(' ') : []; }
+  function sing(w) {                                      // singulier approximatif
+    if (w.length > 4 && /aux$/.test(w)) return w.slice(0, -3) + 'al';
+    if (w.length > 3 && /[sx]$/.test(w)) return w.slice(0, -1);
+    return w;
+  }
+  function dist(a, b, max) {                              // Damerau-Levenshtein borné
+    var la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > max) return max + 1;
+    var prev2 = null, prev = [], cur, i, j;
+    for (j = 0; j <= lb; j++) prev[j] = j;
+    for (i = 1; i <= la; i++) {
+      cur = [i]; var best = i;
+      for (j = 1; j <= lb; j++) {
+        var c = a[i - 1] === b[j - 1] ? 0 : 1;
+        var v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + c);
+        if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+        cur[j] = v; if (v < best) best = v;
+      }
+      if (best > max) return max + 1;
+      prev2 = prev; prev = cur;
+    }
+    return prev[lb];
+  }
+  function prep(data) {
+    DATA = data; INV = Object.create(null); DISP = Object.create(null);
+    data.forEach(function (d, i) {
+      Object.keys(F).forEach(function (f) {
+        if (!d[f]) return;
+        var src = String(d[f]);
+        if (f !== 'b') src.split(/[^A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9]+/).forEach(function (w) { var n = norm(w); if (n && n.indexOf(' ') < 0 && !DISP[n]) DISP[n] = w.toLowerCase(); });
+        toks(src).forEach(function (t, pos) {
+          if (t.length < 2) return;
+          var w = F[f] + (f === 't' && pos === 0 ? 4 : 0), m = INV[t] || (INV[t] = Object.create(null));
+          if (!m[i] || m[i] < w) m[i] = w;
+        });
+      });
+    });
+    VOCAB = Object.keys(INV);
+    return data;
+  }
+  function load(root) {
+    if (DATA) return Promise.resolve(DATA);
+    if (loading) return loading;
+    loading = fetch((root || document.body.getAttribute('data-root') || './') + 'search-index.json')
+      .then(function (r) { return r.json(); }).then(prep).catch(function (e) { loading = null; throw e; });
+    return loading;
+  }
+  /* variantes d'un mot dans un vocabulaire : [{t, w, k}] (k : exact, forme, debut, faute) */
+  function variants(term, vocab, inv) {
+    var key = term + '|' + (vocab === VOCAB ? 'g' : vocab.length);
+    if (vocab === VOCAB && CACHE[key]) return CACHE[key];
+    var out = [], s = sing(term), n = term.length;
+    vocab.forEach(function (v) {
+      var w = 0, k = '';
+      if (v === term) { w = 1; k = 'exact'; }
+      else if (sing(v) === s) { w = .95; k = 'forme'; }
+      else if (n >= 3 && v.indexOf(term) === 0) { w = n >= 5 ? .8 : .7; k = 'debut'; }
+      else if (n >= 4) {
+        var max = n >= 8 ? 2 : 1, d = dist(s, sing(v), max);
+        if (d <= max) { w = d === 1 ? .7 : .55; k = 'faute'; }
+        else {                                            // même racine : inscrire / inscription
+          var p = 0, m = Math.min(v.length, n); while (p < m && v[p] === term[p]) p++;
+          if (p >= 6 && p >= .75 * m) { w = .5; k = 'racine'; }
+        }
+      }
+      if (w) out.push({ t: v, w: w, k: k });
+    });
+    out.sort(function (a, b) { return b.w - a.w || (inv ? Object.keys(inv[b.t] || {}).length - Object.keys(inv[a.t] || {}).length : 0); });
+    out = out.slice(0, 14);
+    if (vocab === VOCAB) CACHE[key] = out;
+    return out;
+  }
+  /* requête → termes (expressions synonymes reconnues d'abord, mots vides retirés) */
+  function parse(q) {
+    var raw = toks(q), terms = [], i = 0;
+    while (i < raw.length) {
+      var hit = null;
+      for (var L = 3; L >= 2 && !hit; L--) {
+        if (i + L <= raw.length) { var ph = raw.slice(i, i + L).join(' '); if (SYN[ph]) hit = { text: ph, syn: SYN[ph], words: raw.slice(i, i + L).filter(function (w) { return !STOP[w]; }), n: L }; }
+      }
+      if (hit) { terms.push(hit); i += hit.n; continue; }
+      var w = raw[i++];
+      if (STOP[w] || w.length < 2) continue;
+      terms.push({ text: w, syn: SYN[w] || SYN[sing(w)] || null, words: [w] });
+    }
+    if (!terms.length) raw.forEach(function (w) { if (w.length > 1) terms.push({ text: w, syn: null, words: [w] }); });
+    return terms;
+  }
+  function docsWithAll(words) {                             // pages contenant tous les mots (forme exacte ou pluriel)
+    var acc = null;
+    words.forEach(function (w) {
+      var m = Object.create(null);
+      [w, sing(w)].concat(sing(w) !== w ? [] : [w + 's']).forEach(function (v) { var d = INV[v]; if (d) for (var k in d) if (!m[k] || m[k] < d[k]) m[k] = d[k]; });
+      if (acc === null) acc = m;
+      else { var n = Object.create(null); for (var k in acc) if (m[k]) n[k] = acc[k] + m[k]; acc = n; }
+    });
+    return acc || {};
+  }
+  function termScores(term, info) {
+    var acc = Object.create(null), put = function (d, s) { if (!acc[d] || acc[d] < s) acc[d] = s; };
+    if (term.words.length > 1) {
+      var ph = docsWithAll(term.words); for (var d in ph) put(d, ph[d] / term.words.length * 1.1);
+    } else {
+      variants(term.words[0], VOCAB, INV).forEach(function (v) {
+        var m = INV[v.t], used = false;
+        for (var d in m) { put(d, m[d] * v.w); used = true; }
+        if (used) info.tok[v.t] = v.k;
+      });
+    }
+    var own = Object.keys(acc).length;
+    if (term.syn) term.syn.forEach(function (p) {
+      var ws = toks(p).filter(function (w) { return !STOP[w]; }), m = docsWithAll(ws), any = false;
+      for (var d in m) { put(d, m[d] / ws.length * .85); any = true; }
+      if (any) { ws.forEach(function (w) { info.tok[w] = info.tok[w] || 'syn'; }); info.syn.push(p); }
+    });
+    term.own = own;
+    return acc;
+  }
+  function search(q, opt) {
+    opt = opt || {};
+    var res = { items: [], partial: false, fixes: [], syns: [], alt: null, terms: [] };
+    if (!DATA) return res;
+    var terms = parse(q); res.terms = terms;
+    if (!terms.length) return res;
+    /* corrections : mot absent de l'index mais proche d'un mot connu */
+    var altWords = [], corrected = false;
+    terms.forEach(function (t) {
+      var w = t.words[0];
+      if (t.words.length === 1 && !t.syn && !INV[w] && !INV[sing(w)] && !(INV[w + 's'])) {
+        var best = variants(w, VOCAB, INV).filter(function (v) { return v.k === 'faute' || v.k === 'racine'; })[0];
+        var pre = variants(w, VOCAB, INV).filter(function (v) { return v.k === 'debut'; })[0];
+        if (best && !pre) { res.fixes.push({ from: w, to: DISP[best.t] || best.t }); altWords.push(DISP[best.t] || best.t); corrected = true; t.syn = SYN[best.t] || SYN[sing(best.t)] || null; return; }
+      }
+      altWords.push(t.text);
+    });
+    if (corrected) res.alt = altWords.join(' ');
+    var info = { tok: Object.create(null), syn: [] };
+    var maps = terms.map(function (t) { var i2 = { tok: info.tok, syn: [] }; var m = termScores(t, i2); if (i2.syn.length) res.syns.push({ from: t.text, to: i2.syn }); return m; });
+    /* toutes les pages qui répondent à tous les termes ; sinon, aux plus nombreux */
+    var score = Object.create(null), count = Object.create(null);
+    maps.forEach(function (m) { for (var d in m) { score[d] = (score[d] || 0) + m[d]; count[d] = (count[d] || 0) + 1; } });
+    var need = terms.length, ids = Object.keys(score).filter(function (d) { return count[d] === need; });
+    if (!ids.length && need > 1) {
+      res.partial = true;
+      var best = 0; for (var d in count) best = Math.max(best, count[d]);
+      ids = Object.keys(score).filter(function (d) { return count[d] === best; });
+    }
+    var list = ids.map(function (d) {
+      var doc = DATA[d], s = score[d];
+      if (doc.r === 'Actualité' || doc.r === 'Agenda') s *= .72;
+      if (doc.r === 'Délibérations et procès-verbaux') s *= .8;
+      if (opt.only && doc.r !== opt.only) s = 0;
+      return { d: doc, s: s };
+    }).filter(function (e) { return e.s > 0; });
+    list.sort(function (a, b) { return b.s - a.s; });
+    res.items = opt.limit ? list.slice(0, opt.limit) : list;
+    res.tok = info.tok;
+    res.hl = function (text) { return hl(text, info.tok); };
+    return res;
+  }
+  var escH = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function hl(text, tok) {                                 // surligne les mots trouvés (y compris variantes)
+    return String(text).split(/([A-Za-zÀ-ÖØ-öø-ÿŒœÆæ0-9]+)/).map(function (part, i) {
+      if (i % 2 === 0) return escH(part);
+      var n = norm(part);
+      return tok[n] || tok[sing(n)] ? '<mark>' + escH(part) + '</mark>' : escH(part);
+    }).join('');
+  }
+  /* correspondance d'une requête avec un petit texte (filtre de la page « Je veux… ») */
+  function matcher(q) {
+    var terms = parse(q);
+    return function (text) {
+      if (!terms.length) return 1;
+      var vocab = toks(text).filter(function (w, i, a) { return a.indexOf(w) === i; }), total = 0;
+      for (var i = 0; i < terms.length; i++) {
+        var t = terms[i], best = 0;
+        if (t.words.length > 1 && norm(text).indexOf(t.words.join(' ')) > -1) best = 1;
+        variants(t.words[t.words.length - 1], vocab).forEach(function (v) { if (v.w > best) best = v.w; });
+        if (t.syn) t.syn.forEach(function (p) { if ((' ' + vocab.join(' ') + ' ').indexOf(' ' + norm(p) + ' ') > -1) best = Math.max(best, .85); });
+        if (!best) return 0;
+        total += best;
+      }
+      return total;
+    };
+  }
+  function url(root, d) { return root + d.u + (d.u && d.u.indexOf('#') < 0 ? '/' : ''); }
+  return { load: load, search: search, norm: norm, matcher: matcher, url: url, esc: escH, ready: function () { return !!DATA; } };
+})();
 (function () {
   'use strict';
   var $ = function (s, c) { return (c || document).querySelector(s); };
@@ -239,40 +490,40 @@
     });
   });
 
-  /* ---------- Moteur de recherche (index JSON statique) ---------- */
+  /* ---------- Page de résultats (moteur CCBAFind) ---------- */
   var results = $('#search-results');
   if (results) {
-    var qInput = $('#q-page'), status = $('#search-status');
+    var qInput = $('#q-page'), status = $('#search-status'), help = $('#search-help');
     var q = new URLSearchParams(location.search).get('q') || '';
     qInput.value = q;
-    var escH = function (s) { return s.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-    var run = function (data) {
-      var terms = norm(q).split(/\s+/).filter(function (t) { return t.length > 1; });
-      if (!terms.length) { status.textContent = 'Saisissez un ou plusieurs mots-clés.'; return; }
-      var scored = [];
-      data.forEach(function (d) {
-        var t = norm(d.t), x = norm(d.x), k = norm(d.k || ''), r = norm(d.r || ''), s = 0, all = true;
-        terms.forEach(function (w) {
-          var hit = 0;
-          if (t.indexOf(w) > -1) hit += (t.indexOf(w) === 0 ? 14 : 10);
-          if (k.indexOf(w) > -1) hit += 5;
-          if (r.indexOf(w) > -1) hit += 3;
-          if (x.indexOf(w) > -1) hit += 2;
-          if (!hit) all = false; s += hit;
-        });
-        if (s && all) { if (d.r === 'Actualité' || d.r === 'Agenda') s -= 3; scored.push([s, d]); }
-      });
-      scored.sort(function (a, b) { return b[0] - a[0]; });
-      var hl = function (s) { var out = escH(s); terms.forEach(function (w) { out = out.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi'), '<mark>$1</mark>'); }); return out; };
-      status.textContent = scored.length ? scored.length + ' résultat' + (scored.length > 1 ? 's' : '') + ' pour « ' + q + ' »' : 'Aucun résultat pour « ' + q + ' ». Essayez un autre mot-clé ou consultez le plan du site.';
-      results.innerHTML = scored.slice(0, 60).map(function (e) {
-        var d = e[1];
-        return '<li><span class="r-cat">' + escH(d.r || 'Page') + '</span><a href="' + ROOT + d.u + (d.u ? '/' : '') + '">' + hl(d.t) + '</a><p>' + escH(d.x || '') + '</p></li>';
+    var E = CCBAFind.esc;
+    var link = function (label, qq) { return '<a href="?q=' + encodeURIComponent(qq) + '">' + E(label) + '</a>'; };
+    var run = function () {
+      var res = CCBAFind.search(q), n = res.items.length, notes = [];
+      if (!res.terms.length) { status.textContent = 'Saisissez un ou plusieurs mots-clés.'; return; }
+      if (res.fixes.length) notes.push('Orthographe corrigée : ' + res.fixes.map(function (f) { return '« ' + E(f.from) + ' » → « ' + E(f.to) + ' »'; }).join(', ') + '.');
+      var wide = [];
+      res.syns.forEach(function (s) { s.to.forEach(function (t) { if (CCBAFind.norm(t) !== CCBAFind.norm(s.from) && wide.indexOf(t) < 0) wide.push(t); }); });
+      if (wide.length) notes.push('Recherche élargie à : ' + wide.map(function (t) { return E(t); }).join(', ') + '.');
+      if (res.partial) notes.push('Aucune page ne contient tous vos mots : voici les plus proches.');
+      status.textContent = n ? n + ' résultat' + (n > 1 ? 's' : '') + ' pour « ' + q + ' »' : 'Aucun résultat pour « ' + q + ' ».';
+      var tips = '';
+      if (!n) {
+        tips = (res.alt ? '<p class="sr-alt">Vouliez-vous dire ' + link(res.alt, res.alt) + ' ?</p>' : '') +
+          '<div class="sr-tips"><p class="sr-tips-t">Quelques pistes</p><ul>' +
+          '<li><a href="' + ROOT + 'je-veux/">Je veux… : laissez-vous guider pas à pas</a></li>' +
+          '<li>Essayez un mot plus simple ou plus court (ex. : « collecte », « crèche », « permis »).</li>' +
+          '<li><a href="' + ROOT + 'plan-du-site/">Plan du site</a> · <a href="' + ROOT + 'contact/">Contacter la CCBA</a></li></ul></div>';
+      }
+      help.innerHTML = (notes.length ? '<p class="sr-note">' + notes.join(' ') + '</p>' : '') + tips;
+      results.innerHTML = res.items.slice(0, 60).map(function (e) {
+        var d = e.d;
+        return '<li' + (d.r === 'Je veux…' ? ' class="r-jv"' : '') + '><span class="r-cat">' + E(d.r || 'Page') + '</span><a href="' + CCBAFind.url(ROOT, d) + '">' + res.hl(d.t) + '</a><p>' + res.hl(d.x || '') + '</p></li>';
       }).join('');
     };
     if (q) {
       status.textContent = 'Recherche en cours…';
-      fetch(ROOT + 'search-index.json').then(function (r) { return r.json(); }).then(run).catch(function () { status.textContent = 'La recherche est momentanément indisponible.'; });
+      CCBAFind.load(ROOT).then(run).catch(function () { status.textContent = 'La recherche est momentanément indisponible.'; });
     }
   }
 })();
@@ -762,41 +1013,7 @@
 (function () {
   var ROOT = document.body.getAttribute('data-root') || './';
   var inputs = ['q-top', 'q-hero'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
-  var DATA = null, loading = null;
-  var norm = function (s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’']/g, ' '); };
-  var escH = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  function load() {
-    if (DATA || loading) return loading;
-    loading = fetch(ROOT + 'search-index.json').then(function (r) { return r.json(); }).then(function (d) { DATA = d; return d; }).catch(function () { loading = null; });
-    return loading;
-  }
-  function search(q) {
-    var terms = norm(q).split(/\s+/).filter(function (t) { return t.length > 1; });
-    if (!terms.length || !DATA) return [];
-    var out = [];
-    DATA.forEach(function (d) {
-      var t = norm(d.t), x = norm(d.x), k = norm(d.k || ''), r = norm(d.r || ''), s = 0, all = true;
-      terms.forEach(function (w) {
-        var hit = 0;
-        if (t.indexOf(w) > -1) hit += (t.indexOf(w) === 0 ? 14 : 10);
-        if (k.indexOf(w) > -1) hit += 5;
-        if (r.indexOf(w) > -1) hit += 3;
-        if (x.indexOf(w) > -1) hit += 2;
-        if (!hit) all = false; s += hit;
-      });
-      if (s && all) { if (d.r === 'Actualité' || d.r === 'Agenda') s -= 4; out.push([s, d]); }
-    });
-    out.sort(function (a, b) { return b[0] - a[0]; });
-    return out.slice(0, 6).map(function (e) { return e[1]; });
-  }
-  var hl = function (s, q) {
-    var out = escH(s);
-    norm(q).split(/\s+/).filter(function (t) { return t.length > 1; }).forEach(function (w) {
-      var src = norm(s), i = src.indexOf(w);
-      if (i > -1) { var seg = s.substr(i, w.length); out = out.replace(escH(seg), '<mark>' + escH(seg) + '</mark>'); }
-    });
-    return out;
-  };
+  var escH = CCBAFind.esc, load = function () { return CCBAFind.load(ROOT).catch(function () {}); };
   inputs.forEach(function (inp, n) {
     var form = inp.closest('form'), list = document.createElement('ul'), active = -1, items = [];
     list.className = 'suggest'; list.id = 'sg-' + n; list.setAttribute('role', 'listbox'); list.hidden = true;
@@ -813,16 +1030,22 @@
     function render() {
       var q = inp.value.trim();
       if (q.length < 2) { close(); return; }
-      var res = search(q); items = res;
-      var html = res.map(function (d, i) {
-        return '<li role="option" id="' + list.id + '-' + i + '" aria-selected="false"><a href="' + ROOT + d.u + (d.u ? '/' : '') + '" tabindex="-1"><span class="sg-t">' + hl(d.t, q) + '</span><span class="sg-r">' + escH(d.r || 'Page') + '</span></a></li>';
+      var res = CCBAFind.search(q, { limit: 6 }); items = res.items;
+      var html = '';
+      if (res.items.length && (res.fixes.length || res.syns.length)) {
+        html += '<li class="sg-note" aria-hidden="true">' + (res.fixes.length ? 'Résultats pour « ' + escH(res.alt) + ' »' : 'Recherche élargie à : ' + escH(res.syns[0].to.join(', '))) + '</li>';
+      }
+      html += res.items.map(function (e, i) {
+        var d = e.d;
+        return '<li role="option" id="' + list.id + '-' + i + '" aria-selected="false"' + (d.r === 'Je veux…' ? ' class="sg-jv"' : '') + '><a href="' + CCBAFind.url(ROOT, d) + '" tabindex="-1"><span class="sg-t">' + res.hl(d.t) + '</span><span class="sg-r">' + escH(d.r || 'Page') + '</span></a></li>';
       }).join('');
-      html += res.length ? '<li role="option" class="sg-all" id="' + list.id + '-all" aria-selected="false"><a href="' + form.getAttribute('action') + '?q=' + encodeURIComponent(q) + '" tabindex="-1">Tous les résultats pour « ' + escH(q) + ' »</a></li>'
-                         : '<li class="sg-empty">Aucune suggestion : appuyez sur Entrée pour lancer la recherche.</li>';
+      html += res.items.length ? '<li role="option" class="sg-all" id="' + list.id + '-all" aria-selected="false"><a href="' + form.getAttribute('action') + '?q=' + encodeURIComponent(q) + '" tabindex="-1">Tous les résultats pour « ' + escH(q) + ' »</a></li>'
+        : '<li class="sg-empty">Aucune suggestion' + (res.alt ? ' — vouliez-vous dire « ' + escH(res.alt) + ' » ?' : '.') + '</li>' +
+          '<li role="option" class="sg-all" id="' + list.id + '-jv" aria-selected="false"><a href="' + ROOT + 'je-veux/" tabindex="-1">Laissez-vous guider : Je veux…</a></li>';
       list.innerHTML = html; list.hidden = false; inp.setAttribute('aria-expanded', 'true'); active = -1;
     }
     inp.addEventListener('focus', load);
-    inp.addEventListener('input', function () { var p = load(); if (DATA) render(); else if (p) p.then(render); });
+    inp.addEventListener('input', function () { if (CCBAFind.ready()) render(); else load().then(render); });
     inp.addEventListener('keydown', function (e) {
       if (list.hidden) return;
       var lis = list.querySelectorAll('[role="option"]');
