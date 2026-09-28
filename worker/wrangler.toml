@@ -12,5 +12,6 @@ KB_URL = "https://maeelk.github.io/CCBA_Site/assets/data/kb.txt"
 ALLOWED_ORIGINS = "https://maeelk.github.io,http://localhost:8765,http://127.0.0.1:8765"
 MAX_PER_HOUR = "40"
 
-# La clé API Google n'est PAS ici : c'est un secret.
+# Pas de clé API Google ici : chaque visiteur apporte la sienne (voir worker/README.md).
+# Optionnel, pour un repli côté serveur si un visiteur n'a pas de clé :
 #   npx wrangler secret put GEMINI_KEY

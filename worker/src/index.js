@@ -1,23 +1,31 @@
 /**
  * CCBA — Worker « Aube », l'assistant du site de la Communauté de Communes du Bassin d'Aubenas.
  *
- * Rôle : relayer les questions des usagers vers l'API Google Gemini sans jamais exposer la clé
- * dans le navigateur. La base de connaissances (assets/data/kb.txt, générée à chaque mise en
- * ligne du site) est téléchargée par le Worker, mise en cache et placée dans le prompt système :
- * le modèle ne répond donc qu'avec le contenu réellement publié, et suit le site sans
- * redéploiement du Worker.
+ * Rôle : relayer les questions des usagers vers l'API Google Gemini. Chaque visiteur apporte sa
+ * propre clé API Gemini (gratuite, obtenue sur aistudio.google.com/apikey) : le Worker ne stocke
+ * ni ne journalise cette clé, il la transmet telle quelle à Google pour la durée de la requête.
+ * Elle voyage dans l'en-tête `X-Gemini-Key`, jamais dans l'URL ni dans le corps journalisable.
+ * La base de connaissances (assets/data/kb.txt, générée à chaque mise en ligne du site) est
+ * téléchargée par le Worker, mise en cache et placée dans le prompt système : le modèle ne répond
+ * donc qu'avec le contenu réellement publié, et suit le site sans redéploiement du Worker.
  *
- * Configuration (wrangler.toml + secret) :
- *   GEMINI_KEY        secret   clé API Google AI Studio        (wrangler secret put GEMINI_KEY)
+ * Configuration (wrangler.toml) :
  *   MODEL             var      modèle préféré ; repli automatique sur les modèles voisins
  *   KB_URL            var      adresse de la base de connaissances
  *   ALLOWED_ORIGINS   var      origines autorisées, séparées par des virgules
  *   MAX_PER_HOUR      var      questions par adresse IP et par heure (défaut 40)
+ *   GEMINI_KEY        secret   optionnel : clé de repli côté serveur, si un jour on en veut une
+ *                              (wrangler secret put GEMINI_KEY) — sinon chaque visiteur apporte
+ *                              la sienne et ce secret peut rester absent.
  *
  * Points d'entrée :
- *   POST /chat     { messages:[{role:'user'|'model', text}] }  → réponse en flux (SSE)
+ *   POST /chat     { messages:[...] }, en-tête X-Gemini-Key  → réponse en flux (SSE)
  *   GET  /health   état du Worker, modèle utilisé, taille de la base
- *   GET  /models   modèles disponibles pour cette clé (aide au réglage de MODEL)
+ *   GET  /models   modèles disponibles pour une clé donnée (en-tête X-Gemini-Key ou ?key=)
+ *
+ * Si l'en-tête X-Gemini-Key est absent ou que Google refuse la clé, le Worker répond 401 avec
+ * un champ `code` ('missing_key' ou 'key') : c'est le signal que le site utilise pour demander
+ * (ou redemander) la clé dans la fenêtre de discussion.
  */
 
 const FALLBACK_MODELS = [
@@ -57,7 +65,7 @@ ${kb}`;
 const cors = (origin, allowed) => ({
   'Access-Control-Allow-Origin': allowed ? origin : 'null',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'content-type',
+  'Access-Control-Allow-Headers': 'content-type, x-gemini-key',
   'Access-Control-Max-Age': '86400',
   Vary: 'Origin',
 });
@@ -96,18 +104,21 @@ async function kb(env, ctx) {
 }
 
 /** Appelle un modèle, en essayant le modèle demandé puis les suivants (les noms évoluent). */
-async function callGemini(env, body, stream) {
+async function callGemini(env, key, body, stream) {
   const wanted = [...new Set([env.MODEL, ...FALLBACK_MODELS].filter(Boolean))];
   const order = PICKED ? [PICKED, ...wanted.filter(m => m !== PICKED)] : wanted;
   let last = null;
   for (const model of order) {
     const path = stream ? 'streamGenerateContent?alt=sse&key=' : 'generateContent?key=';
-    const r = await fetch(`${API}/models/${model}:${path}${env.GEMINI_KEY}`, {
+    const r = await fetch(`${API}/models/${model}:${path}${key}`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     });
     if (r.ok) { PICKED = model; return { r, model }; }
     const txt = await r.text();
     last = { status: r.status, model, txt: txt.slice(0, 400) };
+    if (r.status === 403 || (r.status === 400 && /API_KEY_INVALID|API key not valid/i.test(txt))) {
+      const e = new Error('Clé API refusée par Google.'); e.code = 'key'; e.detail = last; throw e;
+    }
     if (r.status !== 404 && r.status !== 400) break;           // 404/400 : modèle inconnu → on essaie le suivant
   }
   const e = new Error('Aucun modèle disponible : ' + JSON.stringify(last));
@@ -130,11 +141,14 @@ export default {
       let size = 0, err = null;
       try { size = (await kb(env, ctx)).length; } catch (e) { err = String(e.message || e); }
       return Response.json({ ok: !err, model: PICKED || env.MODEL || FALLBACK_MODELS[0], kb: size, kbError: err,
-        key: env.GEMINI_KEY ? 'configurée' : 'MANQUANTE', origins: env.ALLOWED_ORIGINS || '(toutes)' }, { headers: H });
+        key: 'apportée par chaque visiteur (en-tête X-Gemini-Key)' + (env.GEMINI_KEY ? ' + repli serveur configuré' : ''),
+        origins: env.ALLOWED_ORIGINS || '(toutes)' }, { headers: H });
     }
 
-    if (url.pathname === '/models') {                          // aide au réglage : modèles offerts par la clé
-      const r = await fetch(`${API}/models?key=${env.GEMINI_KEY}`);
+    if (url.pathname === '/models') {                          // aide au réglage : modèles offerts par une clé donnée
+      const key = request.headers.get('X-Gemini-Key') || url.searchParams.get('key') || env.GEMINI_KEY || '';
+      if (!key) return Response.json({ error: 'Fournissez une clé : en-tête X-Gemini-Key ou ?key=.', code: 'missing_key' }, { status: 401, headers: H });
+      const r = await fetch(`${API}/models?key=${key}`);
       const d = await r.json();
       return Response.json((d.models || []).map(m => ({
         id: m.name.replace('models/', ''), in: m.inputTokenLimit, methods: m.supportedGenerationMethods })), { headers: H });
@@ -144,7 +158,9 @@ export default {
       return new Response('CCBA — assistant. POST /chat, GET /health, GET /models.', { status: 404, headers: H });
 
     if (!ok) return Response.json({ error: 'Origine non autorisée.' }, { status: 403, headers: H });
-    if (!env.GEMINI_KEY) return Response.json({ error: 'Clé API non configurée sur le Worker.' }, { status: 500, headers: H });
+
+    const key = request.headers.get('X-Gemini-Key') || env.GEMINI_KEY || '';
+    if (!key) return Response.json({ error: 'Merci de renseigner votre clé API Gemini.', code: 'missing_key' }, { status: 401, headers: H });
 
     const ip = request.headers.get('CF-Connecting-IP') || 'anon';
     if (limited(ip, env))
@@ -170,8 +186,11 @@ export default {
     };
 
     let up;
-    try { up = await callGemini(env, body, true); }
-    catch (e) { return Response.json({ error: 'Le service de réponse est momentanément indisponible.', detail: e.detail || String(e) }, { status: 502, headers: H }); }
+    try { up = await callGemini(env, key, body, true); }
+    catch (e) {
+      if (e.code === 'key') return Response.json({ error: 'Votre clé API Gemini est invalide ou a expiré.', code: 'key' }, { status: 401, headers: H });
+      return Response.json({ error: 'Le service de réponse est momentanément indisponible.', detail: e.detail || String(e) }, { status: 502, headers: H });
+    }
 
     /* transformation du flux Gemini en flux simple : {d:"texte"} puis {done:true} */
     const { readable, writable } = new TransformStream();

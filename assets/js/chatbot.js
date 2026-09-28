@@ -4,7 +4,10 @@
    pendant l'attente et parle pendant la réponse. Les réponses viennent d'un
    Worker Cloudflare (worker/src/index.js) qui interroge un modèle Gemini avec,
    en prompt système, le contenu du site (assets/data/kb.txt).
-   Aucune donnée n'est conservée : la conversation vit dans l'onglet.
+   Chaque visiteur apporte sa propre clé API Gemini (gratuite, aistudio.google.com/apikey) :
+   Aube la demande dans la fenêtre de discussion avant la première question. Elle est gardée
+   uniquement dans ce navigateur (localStorage) et envoyée au Worker dans l'en-tête X-Gemini-Key
+   à chaque question — jamais conservée par la CCBA. La conversation, elle, vit dans l'onglet.
    ========================================================================== */
 (function () {
   'use strict';
@@ -12,7 +15,11 @@
   var API = document.body.getAttribute('data-bot') || '';
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var KEY = 'ccba-chat';
+  var KEY_LS = 'ccba-chat-key';
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function getApiKey() { try { return localStorage.getItem(KEY_LS) || ''; } catch (e) { return ''; } }
+  function setApiKey(k) { try { localStorage.setItem(KEY_LS, k); } catch (e) {} }
+  function clearApiKey() { try { localStorage.removeItem(KEY_LS); } catch (e) {} }
 
   /* ---------------------------------------------------------------- visage */
   /* Aube : un petit soleil levant — le motif du site (le nom, l'intro « Un trait de lumière »,
@@ -87,10 +94,11 @@
         '<textarea id="cb-in" rows="1" placeholder="Votre question…" maxlength="1200" autocomplete="off"></textarea>' +
         '<button type="submit" class="cb-send" aria-label="Envoyer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M12 5l7 7-7 7"/></svg></button>' +
       '</form>' +
-      '<p class="cb-legal">Réponses générées automatiquement à partir des pages du site. Elles peuvent être incomplètes&nbsp;: en cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>. N’indiquez pas d’informations personnelles.</p>';
+      '<p class="cb-legal">Réponses générées automatiquement à partir des pages du site. Elles peuvent être incomplètes&nbsp;: en cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>. N’indiquez pas d’informations personnelles. Votre clé API Gemini reste dans ce navigateur — <button type="button" class="cb-linklike" id="cb-rekey">changer de clé</button>.</p>';
     document.body.appendChild(panel);
     list = panel.querySelector('.cb-log'); form = panel.querySelector('.cb-form'); input = panel.querySelector('#cb-in');
     animateFace(panel.querySelector('.cb-face'));
+    panel.querySelector('#cb-rekey').addEventListener('click', function () { clearApiKey(); askKey('Collez une nouvelle clé pour continuer.'); });
     panel.querySelector('.cb-x').addEventListener('click', function () { toggle(false); });
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(120, input.scrollHeight) + 'px'; });
@@ -138,6 +146,10 @@
   function scroll() { list.scrollTop = list.scrollHeight; }
 
   function greet() {
+    if (!getApiKey()) { askKey(); return; }
+    greetChips();
+  }
+  function greetChips() {
     bubble('model', '<p>Bonjour&nbsp;! Je réponds à vos questions sur les services de la Communauté de communes&nbsp;: déchets, urbanisme, enfance, transports, logement…</p>');
     var chips = document.createElement('div'); chips.className = 'cb-chips';
     SUGGEST.forEach(function (s) {
@@ -148,10 +160,33 @@
     list.appendChild(chips); scroll();
   }
 
+  /* ---------------------------------------------------------------- clé API du visiteur */
+  function askKey(reason) {
+    bubble('model', '<p>' + esc(reason || 'Avant de répondre, j’ai besoin d’une clé API Google Gemini. Elle est gratuite, reste uniquement dans ce navigateur et n’est jamais conservée par la CCBA : elle sert seulement à générer vos réponses.') + '</p>' +
+      '<p>Obtenez la vôtre en quelques secondes sur <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey<span class="sr-only"> (nouvelle fenêtre)</span></a> (compte Google requis), puis collez-la ci-dessous.</p>');
+    var wrap = document.createElement('form'); wrap.className = 'cb-keyform';
+    wrap.innerHTML = '<label class="sr-only" for="cb-key">Votre clé API Gemini</label>' +
+      '<input id="cb-key" type="password" autocomplete="off" spellcheck="false" placeholder="Collez votre clé (commence par AIza…)">' +
+      '<button type="submit">Valider</button>';
+    list.appendChild(wrap); scroll();
+    var kInput = wrap.querySelector('#cb-key');
+    wrap.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = kInput.value.trim();
+      if (!v) return;
+      setApiKey(v);
+      wrap.remove();
+      bubble('model', '<p>Merci, votre clé est enregistrée dans ce navigateur. Posez votre question&nbsp;!</p>');
+      greetChips();
+    });
+    setTimeout(function () { kInput.focus(); }, 0);
+  }
+
   /* ---------------------------------------------------------------- échange */
   function send(text) {
     text = (text || '').trim();
     if (!text || busy) return;
+    if (!getApiKey()) { askKey(); return; }
     var chips = list.querySelector('.cb-chips'); if (chips) chips.remove();
     input.value = ''; input.style.height = 'auto';
     bubble('user', '<p>' + esc(text) + '</p>');
@@ -161,9 +196,11 @@
     var acc = '';
     controller = new AbortController();
     fetch(API.replace(/\/$/, '') + '/chat', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, signal: controller.signal,
+      method: 'POST', headers: { 'content-type': 'application/json', 'X-Gemini-Key': getApiKey() }, signal: controller.signal,
       body: JSON.stringify({ messages: hist.slice(-16) }),
     }).then(function (r) {
+      if (r.status === 401) return r.json().catch(function () { return {}; }).then(function (j) {
+        var e = new Error(j.error || 'Clé API manquante ou invalide.'); e.code = 'key'; throw e; });
       if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.error || 'Service indisponible (' + r.status + ').'); });
       var reader = r.body.getReader(), dec = new TextDecoder(), buf = '';
       return (function pump() {
@@ -187,12 +224,17 @@
       save();
     }).catch(function (e) {
       if (e.name === 'AbortError') { out.remove(); return; }
+      hist.pop();
+      if (e.code === 'key') {
+        clearApiKey(); out.remove();
+        askKey('Votre clé API Gemini semble invalide ou a expiré. Merci d’en coller une nouvelle pour continuer.');
+        return;
+      }
       out.classList.add('cb-err');
       out.innerHTML = '<p>Je n’arrive pas à répondre pour le moment. ' +
         'Vous pouvez <a href="' + ROOT + 'recherche/?q=' + encodeURIComponent(text.slice(0, 60)) + '">chercher sur le site</a>, ' +
         'utiliser les <a href="' + ROOT + 'je-veux/">parcours guidés</a> ou appeler la CCBA au <a href="tel:+33475946112">04 75 94 61 12</a>.</p>' +
         '<p class="cb-errd">' + esc(e.message || '') + '</p>';
-      hist.pop();
     }).then(function () {
       busy = false; controller = null;
       panel.classList.remove('is-busy'); btn.classList.remove('is-busy');
