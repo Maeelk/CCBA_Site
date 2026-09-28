@@ -512,6 +512,7 @@ var CCBAFind = (function () {
         tips = (res.alt ? '<p class="sr-alt">Vouliez-vous dire ' + link(res.alt, res.alt) + ' ?</p>' : '') +
           '<div class="sr-tips"><p class="sr-tips-t">Quelques pistes</p><ul>' +
           '<li><a href="' + ROOT + 'je-veux/">Je veux… : laissez-vous guider pas à pas</a></li>' +
+          '<li><button type="button" class="sr-ask" data-bot-open="' + E(q) + '">Poser la question à Aube, l’assistante du site</button></li>' +
           '<li>Essayez un mot plus simple ou plus court (ex. : « collecte », « crèche », « permis »).</li>' +
           '<li><a href="' + ROOT + 'plan-du-site/">Plan du site</a> · <a href="' + ROOT + 'contact/">Contacter la CCBA</a></li></ul></div>';
       }

@@ -84,6 +84,34 @@ La carte des 28 communes (accueil, page « Nos 28 communes », encart « Situer�
 - **Légende** : échelle des altitudes par tranches de 100 m, sous les cartes de l’accueil et de la page « Nos 28 communes ». La coloration par population de la page « Nos 28 communes » a été retirée : les chiffres de population restent dans la liste des communes et dans la fiche express.
 - **Réglages** (en tête de `terrain.py`) : exagération `EX`, équidistance `LEVELS`, teintes `STOPS`, projection `AZ`/`TI`. Mettre à jour les altitudes : relancer la collecte IGN (service `elevationLine`, une requête par ligne de la grille) et remplacer `data/dem/dem.npy`.
 
+## Assistante « Aube » — chatbot (version 3.14, maquette)
+
+Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui répond aux questions des usagers à partir du contenu du site. Icône dessinée en code : un petit soleil levant (le motif du site : le nom « Aube », l’intro « Un trait de lumière », le soleil de l’accueil et la diagonale du logo). Il cligne des yeux, suit le pointeur, écarte ses rayons au survol et se met à réfléchir pendant la réponse.
+
+### Comment ça marche
+1. **Base de connaissances** (`kb.py` → `assets/data/kb.txt`, ≈ 334 Ko / 83 000 jetons) : régénérée à chaque mise en ligne. Elle contient l’arborescence, le texte de 148 pages de contenu, les horaires en clair, les 28 communes (population, maire, altitude, jours de collecte, guichet France Services le plus proche), les 64 réponses vérifiées de « Je veux… », les annonces de la bourse, les actualités et l’agenda récents.
+2. **Worker Cloudflare** (`worker/`) : reçoit la question, ajoute la base de connaissances en prompt système, interroge un modèle Google Gemini et renvoie la réponse en flux. **La clé API n’est jamais dans le navigateur** : elle est un secret Cloudflare. Le Worker relit la base toutes les heures : le chatbot suit le site sans être redéployé.
+3. **Interface** (`assets/js/chatbot.js`) : bouton, panneau, réponse qui s’écrit au fil de l’eau, questions suggérées, conversation gardée le temps de l’onglet (rien n’est envoyé ailleurs, rien n’est enregistré).
+
+### Garde-fous
+- Le modèle ne répond **qu’avec la base de connaissances** et doit citer les pages utilisées (affichées en pastilles cliquables sous la réponse). Il doit dire qu’il ne sait pas plutôt que d’inventer, et renvoyer vers l’accueil de la CCBA.
+- Il refuse les sujets hors CCBA, ne donne pas de conseil juridique, médical ou financier personnalisé, rappelle que l’état civil et les écoles relèvent des communes, et ne demande jamais de données personnelles.
+- Un bandeau sous la conversation indique que les réponses sont générées automatiquement et peut être incomplètes.
+- Origines autorisées, limitation à 40 questions par heure et par adresse IP, longueur des questions bornée.
+- En cas de panne, le chatbot propose la recherche, les parcours guidés et le numéro de la CCBA.
+- Accessibilité : panneau `dialog`, zone de conversation `role="log"` annoncée, fermeture par Échap avec retour du focus, Entrée pour envoyer, animations coupées en mouvement réduit, chatbot masqué à l’impression.
+- Points d’entrée complémentaires : page « Je veux… », recherche sans résultat (la question est reprise) et page 404.
+
+### Mise en service
+Le chatbot **n’apparaît que si le Worker est configuré** (`assets/data/bot.json`, champ `api`). Déploiement : voir `worker/README.md` — `npx wrangler login`, `npx wrangler secret put GEMINI_KEY`, `npx wrangler deploy`, puis coller l’adresse obtenue dans `assets/data/bot.json`.
+
+### Limites assumées (c’est une maquette)
+- **Tout le site est envoyé à chaque question** (≈ 83 000 jetons). Simple et fiable, mais coûteux : en production, il faudrait n’envoyer que les pages utiles (la recherche du site sait déjà les trouver) ou utiliser le cache de contexte du fournisseur.
+- Limitation de débit approximative (comptée en mémoire, par isolat Cloudflare).
+- Aucune question n’est journalisée : impossible, en l’état, de savoir ce que les usagers demandent ni d’améliorer les réponses.
+- Une réponse fausse reste possible malgré les consignes. À évaluer sur un jeu de questions réelles avant toute mise en production, et à assortir d’une mention claire côté CCBA.
+- Dépendance à un service extérieur (Google) et à un compte Cloudflare : à arbitrer au regard des exigences de souveraineté et du RGPD (les questions transitent par Google).
+
 ## Corrections et compléments (version 3.13)
 
 ### Corrections des contenus hérités (`corrections.py`, appliquées au build)

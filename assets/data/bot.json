@@ -1,0 +1,4 @@
+{
+ "api": "",
+ "note": "Adresse du Worker Cloudflare de l'assistante « Aube ». Vide = chatbot désactivé. Après « wrangler deploy », coller ici l'adresse affichée (sans barre oblique finale)."
+}
