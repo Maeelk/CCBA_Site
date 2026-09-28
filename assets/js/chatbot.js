@@ -2,8 +2,9 @@
    « Aube » — assistante du site (chatbot)
    Visage dessiné en SVG : il cligne des yeux, suit le pointeur, réfléchit
    pendant l'attente et parle pendant la réponse. Les réponses viennent d'un
-   Worker Cloudflare (worker/src/index.js) qui interroge un modèle Gemini avec,
-   en prompt système, le contenu du site (assets/data/kb.txt).
+   modèle Gemini qui reçoit, en prompt système, le contenu du site (assets/data/kb.txt) —
+   directement depuis le navigateur, ou via le Worker Cloudflare (worker/src/index.js) si son
+   adresse est renseignée dans assets/data/bot.json.
    Chaque visiteur apporte sa propre clé API Gemini (gratuite, aistudio.google.com/apikey) :
    Aube la demande dans la fenêtre de discussion avant la première question. Elle est gardée
    uniquement dans ce navigateur (localStorage) et envoyée au Worker dans l'en-tête X-Gemini-Key
@@ -182,6 +183,115 @@
     setTimeout(function () { kInput.focus(); }, 0);
   }
 
+  /* ---------------------------------------------------------------- appel du modèle
+     Deux voies, même comportement pour l'usager :
+     - Worker configuré (assets/data/bot.json) : le Worker ajoute la base et relaie à Gemini ;
+     - sinon, appel direct de Gemini depuis le navigateur avec la clé du visiteur : la base de
+       connaissances est lue sur le site (assets/data/kb.txt) et placée dans le prompt système.
+     Chaque voie appelle onText(morceau) au fil de la réponse. */
+  var GAPI = 'https://generativelanguage.googleapis.com/v1beta';
+  var MODELS = ['gemini-3.1-flash-lite', 'gemini-3-flash-lite', 'gemini-3.1-flash', 'gemini-3-flash',
+    'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'];
+  var picked = null, kbText = null;
+  try { picked = sessionStorage.getItem('ccba-chat-model'); } catch (e) {}
+  var SYSTEM = function (kb, today) { return 'Tu es « Aube », l’assistante en ligne du site de la Communauté de Communes du Bassin d’Aubenas (CCBA), en Ardèche. Tu réponds aux habitants, aux entreprises et aux associations du territoire.\n\n' +
+    'RÈGLES ABSOLUES\n' +
+    '1. Tu réponds UNIQUEMENT à partir de la BASE DE CONNAISSANCES ci-dessous, qui est le contenu du site. Tu n’inventes jamais un horaire, un tarif, un numéro de téléphone, une adresse, une date, un nom ou une démarche. Si l’information n’y est pas, tu le dis franchement et tu orientes vers l’accueil de la CCBA (04 75 94 61 12, contact@cdcba.fr) ou vers la page la plus proche.\n' +
+    '2. Tu cites toujours la ou les pages utiles, à la fin de ta réponse, sous la forme [[chemin/de/la/page/]] — exactement le chemin donné dans la base, sans inventer d’adresse. Une à trois pages au maximum. Pour un site extérieur, donne l’adresse complète en clair.\n' +
+    '3. Tu ne traites que ce qui concerne la CCBA et son territoire : services, démarches, équipements, communes, vie locale. Pour tout autre sujet (actualité générale, devoirs, code, conseils personnels, autres collectivités), tu expliques poliment que tu ne réponds que sur le Bassin d’Aubenas.\n' +
+    '4. Tu ne donnes jamais de conseil juridique, médical ou financier personnalisé, et tu ne prends aucune décision à la place des services : tu renvoies vers le service compétent.\n' +
+    '5. Compétences : la CCBA n’est pas la mairie. L’état civil, les cartes d’identité, les écoles, le cimetière, l’urbanisme décidé par le maire relèvent des communes ; dis-le et renvoie vers la mairie concernée quand c’est le cas.\n' +
+    '6. Tu ne demandes jamais de données personnelles (nom, adresse, téléphone, numéro de dossier) et tu rappelles de ne pas en écrire ici si l’usager en donne.\n\n' +
+    'STYLE\n' +
+    '- Français simple et direct, vouvoiement, phrases courtes. Pas de jargon administratif : si un sigle est nécessaire (ADS, SPANC, PLUi, RPE, TAD), explique-le en quelques mots.\n' +
+    '- Réponse brève : 2 à 6 phrases, ou une courte liste à puces quand il y a des étapes ou des horaires. Pas de titres, pas de gras superflu.\n' +
+    '- Tu donnes tout de suite l’information utile (le jour, l’heure, le numéro, le lieu), pas seulement un lien.\n' +
+    '- Si la question est vague, tu donnes la réponse la plus probable ET tu proposes une précision : « Vous cherchez plutôt … ou … ? »\n' +
+    '- Si la question concerne une commune précise, utilise les données de cette commune (jour de collecte, guichet France Services le plus proche).\n\n' +
+    'DATE DU JOUR : ' + today + '. Les horaires « ouvert aujourd’hui » se déduisent de cette date. N’annonce pas comme à venir un événement dont la date est passée.\n\n' +
+    'BASE DE CONNAISSANCES (contenu du site) :\n' + kb; };
+
+  function keyError(msg) { var e = new Error(msg || 'Clé API manquante ou invalide.'); e.code = 'key'; return e; }
+  function readSSE(r, onData) {
+    var reader = r.body.getReader(), dec = new TextDecoder(), buf = '';
+    return (function pump() {
+      return reader.read().then(function (res) {
+        if (res.done) return;
+        buf += dec.decode(res.value, { stream: true }).replace(/\r/g, '');
+        var i;
+        while ((i = buf.indexOf('\n\n')) >= 0) {
+          var line = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
+          if (!line.startsWith('data:')) continue;
+          var j; try { j = JSON.parse(line.slice(5)); } catch (e) { continue; }
+          onData(j);
+        }
+        return pump();
+      });
+    })();
+  }
+
+  function viaWorker(msgs, signal, onText) {
+    return fetch(API.replace(/\/$/, '') + '/chat', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'X-Gemini-Key': getApiKey() }, signal: signal,
+      body: JSON.stringify({ messages: msgs }),
+    }).then(function (r) {
+      if (r.status === 401) return r.json().catch(function () { return {}; }).then(function (j) { throw keyError(j.error); });
+      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.error || 'Service indisponible (' + r.status + ').'); });
+      return readSSE(r, function (j) { if (j.error) throw new Error(j.error); if (j.d) onText(j.d); });
+    });
+  }
+
+  function loadKB() {
+    if (kbText) return Promise.resolve(kbText);
+    return fetch(ROOT + 'assets/data/kb.txt').then(function (r) {
+      if (!r.ok) throw new Error('Base de connaissances indisponible (' + r.status + ').');
+      return r.text();
+    }).then(function (t) { kbText = t; return t; });
+  }
+
+  function direct(msgs, signal, onText) {
+    return loadKB().then(function (kb) {
+      var today = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      var body = JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM(kb, today) }] },
+        contents: msgs.map(function (m) { return { role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text).slice(0, 1200) }] }; }),
+        generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 900 },
+        safetySettings: ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT']
+          .map(function (c) { return { category: c, threshold: 'BLOCK_ONLY_HIGH' }; }),
+      });
+      var order = picked ? [picked].concat(MODELS.filter(function (m) { return m !== picked; })) : MODELS.slice();
+      function attempt(i) {
+        if (i >= order.length) throw new Error('Aucun modèle Gemini disponible pour cette clé.');
+        var model = order[i];
+        return fetch(GAPI + '/models/' + model + ':streamGenerateContent?alt=sse', {
+          method: 'POST', signal: signal, body: body,
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': getApiKey() },
+        }).then(function (r) {
+          if (r.ok) {
+            picked = model; try { sessionStorage.setItem('ccba-chat-model', model); } catch (e) {}
+            var sent = 0;
+            return readSSE(r, function (j) {
+              if (j.error) throw new Error(j.error.message || 'La réponse a été interrompue.');
+              var c = j.candidates && j.candidates[0];
+              var t = c && c.content && c.content.parts ? c.content.parts.map(function (p) { return p.text || ''; }).join('') : '';
+              if (t) { sent += t.length; onText(t); }
+              if (c && c.finishReason && c.finishReason !== 'STOP' && !sent)
+                onText('Je ne peux pas répondre à cette question. Pour toute demande, l’accueil de la CCBA répond au 04 75 94 61 12.');
+            });
+          }
+          return r.text().then(function (txt) {
+            if (r.status === 401 || r.status === 403 || (r.status === 400 && /API_KEY_INVALID|API key not valid|API key expired/i.test(txt)))
+              throw keyError('Votre clé API Gemini est invalide ou a expiré.');
+            if (r.status === 429) throw new Error('Le quota gratuit de votre clé Gemini est atteint pour le moment. Réessayez dans une minute.');
+            if (r.status === 404 || r.status === 400) return attempt(i + 1);   // modèle inconnu pour cette clé → suivant
+            throw new Error('Service Gemini indisponible (' + r.status + ').');
+          });
+        });
+      }
+      return attempt(0);
+    });
+  }
+
   /* ---------------------------------------------------------------- échange */
   function send(text) {
     text = (text || '').trim();
@@ -195,30 +305,8 @@
     var out = bubble('model', '<p class="cb-dots" aria-label="Aube rédige sa réponse"><span></span><span></span><span></span></p>', 'is-live');
     var acc = '';
     controller = new AbortController();
-    fetch(API.replace(/\/$/, '') + '/chat', {
-      method: 'POST', headers: { 'content-type': 'application/json', 'X-Gemini-Key': getApiKey() }, signal: controller.signal,
-      body: JSON.stringify({ messages: hist.slice(-16) }),
-    }).then(function (r) {
-      if (r.status === 401) return r.json().catch(function () { return {}; }).then(function (j) {
-        var e = new Error(j.error || 'Clé API manquante ou invalide.'); e.code = 'key'; throw e; });
-      if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error(j.error || 'Service indisponible (' + r.status + ').'); });
-      var reader = r.body.getReader(), dec = new TextDecoder(), buf = '';
-      return (function pump() {
-        return reader.read().then(function (res) {
-          if (res.done) return;
-          buf += dec.decode(res.value, { stream: true });
-          var i;
-          while ((i = buf.indexOf('\n\n')) >= 0) {
-            var line = buf.slice(0, i).trim(); buf = buf.slice(i + 2);
-            if (!line.startsWith('data:')) continue;
-            var j; try { j = JSON.parse(line.slice(5)); } catch (e) { continue; }
-            if (j.error) throw new Error(j.error);
-            if (j.d) { acc += j.d; out.innerHTML = '<span class="sr-only">Aube : </span>' + linkify(acc); scroll(); }
-          }
-          return pump();
-        });
-      })();
-    }).then(function () {
+    var onText = function (t) { acc += t; out.innerHTML = '<span class="sr-only">Aube : </span>' + linkify(acc); scroll(); };
+    (API ? viaWorker : direct)(hist.slice(-16), controller.signal, onText).then(function () {
       if (!acc) throw new Error('Réponse vide.');
       hist.push({ role: 'model', text: acc });
       save();
@@ -269,28 +357,26 @@
   }
   btn.addEventListener('click', function () { toggle(); });
 
-  /* Adresse du Worker : attribut de la page, sinon assets/data/bot.json — ce fichier peut être
-     modifié directement dans le dépôt après le déploiement, sans regénérer le site. */
+  /* Adresse du Worker (facultative) : attribut de la page, sinon assets/data/bot.json — ce fichier
+     peut être modifié directement dans le dépôt, sans regénérer le site. Sans Worker, Aube
+     interroge Gemini directement avec la clé du visiteur : le bouton est donc toujours affiché. */
   if (!API) {
-    btn.hidden = true;
     fetch(ROOT + 'assets/data/bot.json', { cache: 'no-cache' })
       .then(function (r) { return r.json(); })
-      .then(function (j) { if (j && j.api) { API = j.api; btn.hidden = false; entries(); } })
+      .then(function (j) { if (j && j.api) API = j.api; })
       .catch(function () {});
   }
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && panel && !panel.hidden) toggle(false);
   });
   /* liens « Poser la question à Aube » ailleurs dans la page (y compris ceux créés après coup,
-     comme la piste affichée quand une recherche ne donne rien) : affichés seulement si le
-     Worker est configuré, et gérés par délégation. */
-  function entries() { document.documentElement.classList.add('cb-ready'); }
+     comme la piste affichée quand une recherche ne donne rien), gérés par délégation. */
+  document.documentElement.classList.add('cb-ready');
   document.addEventListener('click', function (e) {
     var a = e.target.closest('[data-bot-open]');
-    if (!a || !API) return;
+    if (!a) return;
     e.preventDefault(); toggle(true);
     var q = a.getAttribute('data-bot-open');
     if (q && input && !busy) { input.value = q; input.dispatchEvent(new Event('input')); }
   });
-  if (API) entries();
 })();

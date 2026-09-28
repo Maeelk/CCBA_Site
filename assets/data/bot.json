@@ -1,4 +1,4 @@
 {
  "api": "",
- "note": "Adresse du Worker Cloudflare de l'assistante « Aube ». Vide = chatbot désactivé. Après « wrangler deploy », coller ici l'adresse affichée (sans barre oblique finale)."
+ "note": "Adresse du Worker Cloudflare de l'assistante « Aube » (facultatif). Vide = Aube interroge Gemini directement depuis le navigateur, avec la clé du visiteur. Après « wrangler deploy », on peut coller ici l'adresse affichée (sans barre oblique finale)."
 }
