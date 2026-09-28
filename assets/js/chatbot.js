@@ -260,8 +260,14 @@
           .map(function (c) { return { category: c, threshold: 'BLOCK_ONLY_HIGH' }; }),
       });
       var order = picked ? [picked].concat(MODELS.filter(function (m) { return m !== picked; })) : MODELS.slice();
-      function attempt(i) {
-        if (i >= order.length) throw new Error('Aucun modèle Gemini disponible pour cette clé.');
+      function wait(ms) {
+        return new Promise(function (resolve, reject) {
+          var t = setTimeout(resolve, ms);
+          if (signal) signal.addEventListener('abort', function () { clearTimeout(t); reject(new DOMException('Aborted', 'AbortError')); }, { once: true });
+        });
+      }
+      function attempt(i, retried) {
+        if (i >= order.length) throw new Error('Le service Gemini est temporairement surchargé. Merci de réessayer dans un instant.');
         var model = order[i];
         return fetch(GAPI + '/models/' + model + ':streamGenerateContent?alt=sse', {
           method: 'POST', signal: signal, body: body,
@@ -283,12 +289,17 @@
             if (r.status === 401 || r.status === 403 || (r.status === 400 && /API_KEY_INVALID|API key not valid|API key expired/i.test(txt)))
               throw keyError('Votre clé API Gemini est invalide ou a expiré.');
             if (r.status === 429) throw new Error('Le quota gratuit de votre clé Gemini est atteint pour le moment. Réessayez dans une minute.');
-            if (r.status === 404 || r.status === 400) return attempt(i + 1);   // modèle inconnu pour cette clé → suivant
+            if (r.status === 404 || r.status === 400) return attempt(i + 1, false);   // modèle inconnu pour cette clé → suivant
+            if (r.status === 500 || r.status === 502 || r.status === 503 || r.status === 504) {
+              // surcharge ou panne passagère chez Google : un réessai immédiat, puis le modèle suivant
+              if (!retried) return wait(700).then(function () { return attempt(i, true); });
+              return attempt(i + 1, false);
+            }
             throw new Error('Service Gemini indisponible (' + r.status + ').');
           });
         });
       }
-      return attempt(0);
+      return attempt(0, false);
     });
   }
 

@@ -3,12 +3,18 @@ import worker from './src/index.js';
 globalThis.caches = { default: { match: async () => undefined, put: async () => {} } };
 const KB = '# BASE\n## LA COLLECTIVITÉ\nCCBA, 04 75 94 61 12.\n';
 let calls = [];
+const hits = new Map();     // compte les appels par « modèle+clé », pour simuler une panne temporaire
 const realFetch = globalThis.fetch;
 globalThis.fetch = async (u, o) => {
   u = String(u); calls.push(u);
   if (u.endsWith('kb.txt')) return new Response(KB, { headers: { 'content-type': 'text/plain' } });
   if (u.includes(':streamGenerateContent')) {
     if (u.includes('key=badkey')) return new Response('{"error":{"message":"API key not valid"}}', { status: 400 });
+    if (u.includes('key=overload')) return new Response('{"error":{"message":"overloaded"}}', { status: 503 });  // toujours en panne
+    if (u.includes('key=transient')) {
+      const n = (hits.get(u) || 0) + 1; hits.set(u, n);
+      if (n === 1) return new Response('{"error":{"message":"overloaded"}}', { status: 503 });   // en panne une fois, puis rétabli
+    }
     if (u.includes('/models/gemini-3.1-flash-lite:')) return new Response('{"error":{"message":"not found"}}', { status: 404 });
     const chunks = ['{"candidates":[{"content":{"parts":[{"text":"Le guichet "}]}}]}',
                     '{"candidates":[{"content":{"parts":[{"text":"est ouvert.\\n"}]}}]}',
@@ -21,7 +27,7 @@ globalThis.fetch = async (u, o) => {
 };
 /* Pas de clé de repli côté serveur par défaut : chaque test simule une clé apportée par le visiteur. */
 const env = { MODEL: 'gemini-3.1-flash-lite', KB_URL: 'https://example.test/kb.txt',
-              ALLOWED_ORIGINS: 'https://maeelk.github.io', MAX_PER_HOUR: '3' };
+              ALLOWED_ORIGINS: 'https://maeelk.github.io', MAX_PER_HOUR: '3', RETRY_MS: '1' };
 const ctx = { waitUntil: p => p };
 const req = (path, opt = {}) => new Request('https://w.dev' + path, opt);
 const post = (msgs, origin = 'https://maeelk.github.io', ip = '1.1.1.1', key = 'test') => req('/chat', {
@@ -87,6 +93,18 @@ t('clé invalide signalée', r.status === 401 && j.code === 'key', JSON.stringif
 
 r = await worker.fetch(post([{ role: 'user', text: 'q' }], undefined, '6.6.6.6', ''), { ...env, GEMINI_KEY: 'repli' }, ctx);
 t('repli serveur utilisé si le visiteur n’apporte pas de clé', r.headers.get('content-type').includes('event-stream'), String(r.status));
+
+calls = [];
+r = await worker.fetch(post([{ role: 'user', text: 'q' }], undefined, '7.7.7.7', 'transient'), env, ctx);
+await read(r);
+const tCalls = calls.filter(c => c.includes(':streamGenerateContent') && c.includes('key=transient'));
+t('panne passagère : réessai du même modèle puis succès', tCalls.length === 2 && tCalls[0] === tCalls[1], JSON.stringify(tCalls));
+
+calls = [];
+r = await worker.fetch(post([{ role: 'user', text: 'q' }], undefined, '8.8.8.8', 'overload'), env, ctx);
+const oCalls = calls.filter(c => c.includes(':streamGenerateContent') && c.includes('key=overload'));
+const oModels = new Set(oCalls.map(c => c.split('/models/')[1].split(':')[0]));
+t('panne persistante : tous les modèles essayés (2 fois chacun) puis 502', r.status === 502 && oCalls.length === oModels.size * 2, `${oCalls.length} appels, ${oModels.size} modèles, statut ${r.status}`);
 
 console.log(fails ? `\n${fails} test(s) en échec` : '\nTous les tests passent');
 process.exit(fails ? 1 : 0);

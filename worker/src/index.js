@@ -103,23 +103,31 @@ async function kb(env, ctx) {
   return KB;
 }
 
-/** Appelle un modèle, en essayant le modèle demandé puis les suivants (les noms évoluent). */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** Appelle un modèle, en essayant le modèle demandé puis les suivants (les noms évoluent).
+ *  Une panne ou surcharge passagère de Google (500/502/503/504) déclenche un réessai immédiat
+ *  du même modèle avant de passer au suivant : ce n'est pas le signe d'un modèle indisponible. */
 async function callGemini(env, key, body, stream) {
   const wanted = [...new Set([env.MODEL, ...FALLBACK_MODELS].filter(Boolean))];
   const order = PICKED ? [PICKED, ...wanted.filter(m => m !== PICKED)] : wanted;
   let last = null;
   for (const model of order) {
     const path = stream ? 'streamGenerateContent?alt=sse&key=' : 'generateContent?key=';
-    const r = await fetch(`${API}/models/${model}:${path}${key}`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
-    });
-    if (r.ok) { PICKED = model; return { r, model }; }
-    const txt = await r.text();
-    last = { status: r.status, model, txt: txt.slice(0, 400) };
-    if (r.status === 403 || (r.status === 400 && /API_KEY_INVALID|API key not valid/i.test(txt))) {
-      const e = new Error('Clé API refusée par Google.'); e.code = 'key'; e.detail = last; throw e;
+    for (let retry = 0; retry < 2; retry++) {
+      const r = await fetch(`${API}/models/${model}:${path}${key}`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      });
+      if (r.ok) { PICKED = model; return { r, model }; }
+      const txt = await r.text();
+      last = { status: r.status, model, txt: txt.slice(0, 400) };
+      if (r.status === 403 || (r.status === 400 && /API_KEY_INVALID|API key not valid/i.test(txt))) {
+        const e = new Error('Clé API refusée par Google.'); e.code = 'key'; e.detail = last; throw e;
+      }
+      if ([500, 502, 503, 504].includes(r.status) && retry === 0) { await sleep(+(env.RETRY_MS ?? 700)); continue; }  // panne passagère → réessai
+      break;
     }
-    if (r.status !== 404 && r.status !== 400) break;           // 404/400 : modèle inconnu → on essaie le suivant
+    if (last.status !== 404 && last.status !== 400 && ![500, 502, 503, 504].includes(last.status)) break;
   }
   const e = new Error('Aucun modèle disponible : ' + JSON.stringify(last));
   e.detail = last;
