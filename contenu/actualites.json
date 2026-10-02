@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "titre": "Chasse aux oeufs d'ocotbre",
+    "date": "2026-10-02",
+    "resume": "Venez chasser les oeufs, it us super fun. ",
+    "texte": "<p>Venez chasser les oeufs, it us super fun. Lorem ipsum et tutti quantiVenez chasser les oeufs, it us super fun. Lorem ipsum et tutti quantiVenez chasser les oeufs, it us super fun. Lorem ipsum et tutti quantiVenez chasser les oeufs, it us super fun. Lorem ipsum et tutti quanti</p>",
+    "lien": "https://s3.rbx.io.cloud.ovh.net/sites-faciles/sites-faciles-alliance/documents/4_la_charte_de_lintelligence_artificielle.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=15b12783e5fa40bfbe2c5e8583b51f3e%2F20261002%2Frbx%2Fs3%2Faws4_request&X-Amz-Date=20261002T125334Z&X-Amz-Expires=3600&X-Amz-SignedHeaders=host&X-Amz-Signature=0d705add6d118d85d6738273afb357a2a7846c99776a67633309d39b761ee893",
+    "publie": true
+  }
+]
