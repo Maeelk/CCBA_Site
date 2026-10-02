@@ -1715,21 +1715,38 @@ p.rub-s { z-index: 0; pointer-events: none; }
    v3.17 — accueil resserré : titre à sa juste taille, bandeau du film plus bas,
    actualités sur une hauteur réduite
    ========================================================================== */
-/* Haut de page : le nom du territoire est déjà dans le logo ; le titre accueille, la recherche domine */
-.hero { padding-top: clamp(20px, 2.6vw, 36px); }
-.hero-meta { margin-bottom: clamp(16px, 2.2vw, 30px); }
-.hero-title { margin: 0 0 12px; font-size: clamp(28px, 3.1vw, 44px); line-height: 1.04; letter-spacing: -.035em; color: var(--cassis); }
-.hero-find .lead { font-size: clamp(16px, 1.25vw, 18px); line-height: 1.55; max-width: 30em; }
-.hero-find .mycom { margin-top: 18px; padding-top: 14px; }
-/* « Ma commune » tant qu'aucune n'est choisie : intitulé et liste sur une ligne */
+/* Haut de page : « Ma commune » et la recherche côte à côte, puis le film. Le nom du territoire est
+   déjà dans le logo : le titre de la page reste dans le code (lecteurs d'écran, moteurs) sans être affiché. */
+:root { --hdr-full: 149px; }                       /* hauteur réelle de l'en-tête fixe */
+@media (max-width: 1024px) { :root { --hdr-full: 69px; } }
+.hero { padding-top: clamp(18px, 2vw, 28px); }
+.hero-find { align-items: start; }
+.hero-find .mycom { margin-top: 0; padding-top: 0; border-top: 0; }
+/* tant qu'aucune commune n'est choisie : intitulé et liste sur une ligne */
 .hero-find .mycom:has(.mc-pick) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 16px; }
 .hero-find .mycom:has(.mc-pick) .mc-k { display: none; }
-.hero-find .mycom:has(.mc-pick) .mc-l { margin: 0; }
+.hero-find .mycom:has(.mc-pick) .mc-l { margin: 0; font-size: 18px; }
+.hero-find .mycom:has(.mc-pick) .mc-pick select { max-width: none; }
 .hero-find .mycom:has(.mc-pick) .mc-help { grid-column: 1 / -1; margin: 0; }
-.hero-band { height: clamp(190px, 21vw, 320px); margin-top: clamp(28px, 3.2vw, 48px); }
-.hero-sun { width: clamp(52px, 5.6vw, 92px); }
-@media (max-width: 1024px) { .hero-find .hero-title { order: 0; } .hero-find .lead { margin-bottom: 18px; } }
-@media (max-width: 640px) { .chips a.chips-jv { display: block; } .chips-jv .ico { display: inline-block; vertical-align: -3px; margin-left: 4px; } }
+.hero-left .status { margin-top: 16px; }
+/* Le film en entier dès l'ouverture : le bandeau prend les proportions du film (1920 × 500) et, si la
+   fenêtre est trop basse, la hauteur qui reste sous l'en-tête et le bloc du haut (mesuré par site.js). */
+.hero-band { margin-top: clamp(16px, 1.8vw, 24px); height: clamp(210px, calc(100vh - var(--hdr-full) - var(--hero-top-h, 220px)), 26.042vw); }
+@supports (height: 100svh) { .hero-band { height: clamp(210px, calc(100svh - var(--hdr-full) - var(--hero-top-h, 220px)), 26.042vw); } }
+/* le soleil garde sa position réelle, mais ne monte jamais dans le bloc du haut : son sommet s'arrête dans la marge */
+.hero-band { --sun-w: clamp(52px, 5.6vw, 92px); }
+.hero-sun { width: var(--sun-w); top: max(var(--sun-y), calc(var(--sun-w) * .59 - 14px)); }
+/* les accès rapides passent sous le film au lieu de le recouvrir */
+.dock { margin-top: 0; }
+.hero-band .video-toggle, .hero-band .sun-cap { bottom: clamp(14px, 1.6vw, 22px); }
+@media (max-width: 1024px) {
+  .hero-find .mycom { order: 1; margin-bottom: 18px; }
+  .hero-find .hero-search { order: 2; }
+  .hero-find .chips { order: 3; }
+  .hero-find .status { order: 4; margin-top: 18px; justify-self: start; }
+  .dock { margin-top: 0; }
+}
+@media (max-width: 640px) { .chips a.chips-jv { display: block; } .chips-jv .ico { display: inline-block; vertical-align: -3px; margin-left: 4px; } .hero-band .video-toggle, .hero-band .sun-cap { bottom: 14px; } }
 
 /* Actualités : la une à gauche (image basse, deux lignes de texte), quatre brèves en lignes à droite */
 .news-section { padding-top: clamp(56px, 6vw, 88px); }

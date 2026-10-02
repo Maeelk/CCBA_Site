@@ -352,6 +352,20 @@ var CCBAFind = (function () {
     img.addEventListener('error', function () { broken(img); if (!img.closest('.ph')) img.style.display = 'none'; });
   });
 
+  /* ---------- Accueil : le film tient en entier dans la fenêtre ----------
+     Le bandeau prend la hauteur qui reste sous l'en-tête et le bloc du haut (« Ma commune », recherche).
+     Ce bloc change de hauteur (commune choisie ou non) : on le mesure et on le transmet à la feuille de style. */
+  var heroTop = $('.hero-top'), heroBand = $('.hero-band');
+  if (heroTop && heroBand) {
+    var fit = function () {
+      var top = heroBand.getBoundingClientRect().top - heroTop.closest('.hero').getBoundingClientRect().top;
+      document.documentElement.style.setProperty('--hero-top-h', Math.round(top) + 'px');
+    };
+    fit();
+    if ('ResizeObserver' in window) new ResizeObserver(fit).observe(heroTop);
+    window.addEventListener('resize', fit, { passive: true });
+  }
+
   /* ---------- Film d'accueil : lecture en boucle, pause accessible, sobriété ---------- */
   var video = $('.hero-video'), vbtn = $('.video-toggle');
   if (video && vbtn) {
