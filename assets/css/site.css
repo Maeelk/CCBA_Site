@@ -1894,3 +1894,14 @@ html.splash .hero-sun::before { animation-play-state: paused !important; }
 .dock-in > li:nth-child(4) { animation-delay: .63s; } .dock-in > li:nth-child(5) { animation-delay: .69s; } .dock-in > li:nth-child(6) { animation-delay: .75s; }
 html.splash .dock-in > li { animation-play-state: paused; }
 @media (prefers-reduced-motion: reduce) { .page-head::after { display: none; } }
+
+/* ==========================================================================
+   Back-office (Pages CMS) : pages de lecture des contenus saisis en ligne
+   ========================================================================== */
+.cms-wait { color: var(--muted); }
+.cms-img { margin: 0 0 1.6em; }
+.cms-img img { display: block; width: 100%; height: auto; max-height: 520px; object-fit: cover; border-radius: 4px; }
+.cms-lieu { display: flex; align-items: center; gap: 10px; margin: -6px 0 22px; color: var(--muted); font-size: 15px; }
+.cms-lieu .ico { width: 19px; height: 19px; color: var(--peche); flex: none; }
+.cms-back { margin-top: 2.2em; }
+[data-cms-title] { min-height: 1.05em; }

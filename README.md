@@ -62,6 +62,16 @@ Tous les liens sont **relatifs** : le site fonctionne aussi bien sous un sous-ch
   - **Accueil du siège de la CCBA** (page « Organisation et pôles » et page Contact) : horaires officiels du lundi au vendredi, 9h–12h et 14h–17h30 (la valeur précédente, 8h30, était erronée et a été corrigée partout — accueil, en-tête et page Contact). Les autres pôles (technique, aménagement) n’ont pas d’horaires de guichet publiés : leurs adresses restent en simple texte.
   - Ces trois lieux n’ayant qu’une seule adresse, le composant s’affiche sans la carte en points (variante à une seule ligne, sans numéro de guichet).
 
+## Back-office : actualités et agenda (version 3.20, Pages CMS)
+
+GitHub Pages ne sert que des fichiers : il n’y a ni serveur ni base de données. Le back-office est donc un outil qui **écrit dans le dépôt** : [Pages CMS](https://app.pagescms.org) (gratuit, connexion avec un compte GitHub ayant accès au dépôt).
+
+- **Configuration** : `.pages.yml` à la racine du dépôt (source : `cms/pages.yml` du générateur). Deux formulaires, **Actualités** et **Agenda**, et un dossier d’images.
+- **Où vont les contenus** : `contenu/actualites.json`, `contenu/agenda.json` et `contenu/medias/`, **dans le dépôt publié uniquement**. Le générateur ne les crée ni ne les écrase jamais ; avant toute mise en ligne du générateur, récupérer le dépôt (`git pull`) pour ne pas perdre ce que les rédacteurs ont saisi.
+- **Affichage** : à chaque enregistrement, GitHub Pages republie le site (une à deux minutes). Le script « Back-office » à la fin de `assets/js/site.js` lit les deux fichiers et complète les éléments marqués `data-cms` : actualités de l’accueil et de la page Actualités (mêlées aux existantes, par date), rendez-vous à venir de l’accueil et de la page Agenda, pages de lecture `actualites/lire/?a=…` et `agenda/voir/?e=…`. Aube lit aussi ces contenus.
+- **Règles** : « Publié » décoché = brouillon, invisible ; une actualité datée dans le futur n’apparaît qu’à cette date (publication programmée) ; un rendez-vous disparaît de l’agenda le lendemain de sa fin. Le texte riche est nettoyé à l’affichage (balises et attributs autorisés seulement).
+- **Limites** : les actualités et rendez-vous historiques (repris de l’ancien site) ne sont pas modifiables dans le back-office ; les contenus saisis ne sont pas dans la recherche du site ni dans ses pages statiques (ils sont affichés par JavaScript) ; chaque rédacteur doit avoir un compte GitHub ; pas de circuit de validation.
+
 ## Mouvement : le vocabulaire du splash sur toutes les pages (version 3.19)
 
 Toutes les animations des pages reprennent les gestes de l’écran d’accueil « Un trait de lumière » : même courbe (`--ease-out`, `cubic-bezier(.16,1,.3,1)`), mêmes durées, tout à plat (les bascules et inclinaisons 3D de la version 3.10 sont supprimées). Sans bibliothèque ni image ; le bloc « v3.19 — Mouvement » de `site.css` et les sections « Apparition au défilement » et « L’onde » de `site.js`.

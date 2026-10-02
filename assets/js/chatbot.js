@@ -220,12 +220,26 @@
     });
   }
 
+  /* contenus saisis dans le back-office (contenu/*.json) : ajoutés à la base pour qu'Aube les connaisse aussi */
+  function cmsKB() {
+    var get = function (n) { return fetch(ROOT + 'contenu/' + n + '.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (a) { return Array.isArray(a) ? a : []; }, function () { return []; }); };
+    var txt = function (h) { return String(h || '').replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500); };
+    var d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    return Promise.all([get('actualites'), get('agenda')]).then(function (r) {
+      var out = [];
+      var A = r[0].filter(function (x) { return x && x.titre && x.publie !== false && String(x.date || '').slice(0, 10) <= today; }).slice(0, 30);
+      var E = r[1].filter(function (x) { return x && x.titre && x.publie !== false && String(x.fin || x.debut || '').slice(0, 10) >= today; }).slice(0, 30);
+      if (A.length) out.push('## ACTUALITÉS PUBLIÉES RÉCEMMENT (page actualites/)\n' + A.map(function (x) { return '- ' + String(x.date).slice(0, 10) + ' — ' + x.titre + ' → actualites/\n  ' + [x.resume, txt(x.texte)].filter(Boolean).join(' '); }).join('\n'));
+      if (E.length) out.push('## RENDEZ-VOUS À VENIR (page agenda/)\n' + E.map(function (x) { return '- ' + String(x.debut).slice(0, 10) + (x.fin && x.fin !== x.debut ? ' au ' + String(x.fin).slice(0, 10) : '') + (x.heure ? ' à ' + x.heure : '') + ' — ' + x.titre + (x.lieu ? ' (' + x.lieu + ')' : '') + ' → agenda/\n  ' + [x.resume, txt(x.texte)].filter(Boolean).join(' '); }).join('\n'));
+      return out.length ? '\n\n' + out.join('\n\n') : '';
+    }).catch(function () { return ''; });
+  }
   function loadKB() {
     if (kbText) return Promise.resolve(kbText);
-    return fetch(ROOT + 'assets/data/kb.txt').then(function (r) {
+    return Promise.all([fetch(ROOT + 'assets/data/kb.txt').then(function (r) {
       if (!r.ok) throw new Error('Base de connaissances indisponible (' + r.status + ').');
       return r.text();
-    }).then(function (t) { kbText = t; return t; });
+    }), cmsKB()]).then(function (r) { kbText = r[0] + r[1]; return kbText; });
   }
 
   function direct(msgs, signal, onText) {

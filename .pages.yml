@@ -1,0 +1,138 @@
+# ============================================================================
+# Back-office du site — configuration de Pages CMS (https://app.pagescms.org)
+#
+# Ce fichier décrit les formulaires proposés aux rédacteurs. Chaque
+# enregistrement modifie un fichier du dossier contenu/ ; GitHub Pages
+# republie le site dans la minute et les pages affichent le nouveau contenu
+# (script « Back-office » à la fin de assets/js/site.js).
+#
+#   contenu/actualites.json   les actualités saisies ici
+#   contenu/agenda.json       les rendez-vous saisis ici
+#   contenu/medias/           les images téléversées
+#
+# Les actualités et événements historiques (repris de l'ancien site) ne sont
+# pas modifiables ici : ils sont produits par le générateur du site.
+# ============================================================================
+
+media:
+  input: contenu/medias
+  output: /contenu/medias
+  categories: [image]
+  rename: safe
+
+content:
+  - name: actualites
+    label: Actualités
+    type: file
+    path: contenu/actualites.json
+    format: json
+    list: true
+    fields:
+      - name: titre
+        label: Titre
+        type: string
+        required: true
+        options:
+          maxlength: 140
+      - name: date
+        label: Date de publication
+        description: "L’actualité apparaît sur le site à partir de ce jour (une date future permet de programmer la publication)."
+        type: date
+        required: true
+        options:
+          format: yyyy-MM-dd
+      - name: resume
+        label: Résumé
+        description: "Une ou deux phrases, affichées sur l’accueil et dans la liste des actualités."
+        type: text
+        options:
+          maxlength: 300
+      - name: image
+        label: Image
+        description: "Facultatif. Format paysage de préférence. Sans image, un motif aux couleurs du site est affiché."
+        type: image
+      - name: texte
+        label: Texte de l’actualité
+        type: rich-text
+        options:
+          format: html
+      - name: lien
+        label: Lien « En savoir plus »
+        description: "Facultatif. Adresse complète, par exemple https://www.exemple.fr/page"
+        type: string
+        pattern:
+          regex: "^(https?://\\S+)?$"
+          message: "L’adresse doit commencer par https:// ou http://"
+      - name: publie
+        label: Publié
+        description: "Décochez pour garder l’actualité en brouillon : elle n’apparaît pas sur le site."
+        type: boolean
+        default: true
+
+  - name: agenda
+    label: Agenda
+    type: file
+    path: contenu/agenda.json
+    format: json
+    list: true
+    fields:
+      - name: titre
+        label: Titre du rendez-vous
+        type: string
+        required: true
+        options:
+          maxlength: 140
+      - name: debut
+        label: Date (ou premier jour)
+        type: date
+        required: true
+        options:
+          format: yyyy-MM-dd
+      - name: fin
+        label: Dernier jour
+        description: "Facultatif. À remplir seulement si le rendez-vous dure plusieurs jours."
+        type: date
+        default: ""
+        options:
+          format: yyyy-MM-dd
+      - name: heure
+        label: Heure
+        description: "Facultatif. Exemple : 18h30"
+        type: string
+        pattern:
+          regex: "^(\\d{1,2}\\s?[hH:]\\s?\\d{0,2})?$"
+          message: "Écrivez l’heure sous la forme 18h30"
+      - name: lieu
+        label: Lieu
+        description: "Facultatif. Exemple : Médiathèque Jean Ferrat, Aubenas"
+        type: string
+        options:
+          maxlength: 140
+      - name: resume
+        label: Résumé
+        description: "Une ou deux phrases, affichées dans l’agenda."
+        type: text
+        options:
+          maxlength: 300
+      - name: image
+        label: Image
+        description: "Facultatif."
+        type: image
+      - name: texte
+        label: Présentation détaillée
+        description: "Facultatif : programme, tarifs, inscription…"
+        type: rich-text
+        options:
+          format: html
+      - name: lien
+        label: Lien « En savoir plus »
+        description: "Facultatif. Adresse complète, par exemple https://www.exemple.fr/page"
+        type: string
+        pattern:
+          regex: "^(https?://\\S+)?$"
+          message: "L’adresse doit commencer par https:// ou http://"
+      - name: publie
+        label: Publié
+        description: "Décochez pour garder le rendez-vous en brouillon."
+        type: boolean
+        default: true

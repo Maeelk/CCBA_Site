@@ -369,6 +369,7 @@ var CCBAFind = (function () {
       }
       io.observe(el);
     });
+    window.CCBA_reveal = function (el) { reveals.push(el); io.observe(el); };   // éléments ajoutés après coup (back-office)
     /* saut de page (ancre, touche Fin, barre de défilement) : ce qui est passé au-dessus sans être vu s'affiche quand même */
     var lateT = 0;
     window.addEventListener('scroll', function () {
@@ -378,7 +379,7 @@ var CCBAFind = (function () {
         reveals.forEach(function (el) { if (el.getClientRects().length && el.getBoundingClientRect().bottom < 0) { el.classList.add('is-in'); io.unobserve(el); } });
       }, 220);
     }, { passive: true });
-  } else { reveals.forEach(function (el) { el.classList.add('is-in'); }); }
+  } else { reveals.forEach(function (el) { el.classList.add('is-in'); }); window.CCBA_reveal = function (el) { el.classList.add('is-in'); }; }
   /* découpe des images terminée : on retire le masque (il ne sert qu'à l'animation) */
   document.addEventListener('animationend', function (e) { if (e.animationName === 'mWipe') e.target.classList.add('m-done'); });
 
@@ -1345,23 +1346,22 @@ var CCBA3D = (function () {
   Array.prototype.forEach.call(document.querySelectorAll('svg.fs-map'), function (svg) { try { fsMap(svg); } catch (e) {} });
 
   /* cartes, tuiles et vignettes : un plateau clair se glisse dessous et une lueur suit le pointeur (à plat, sans inclinaison) */
-  if (fine && !reduce) {
-    Array.prototype.forEach.call(document.querySelectorAll('.card, .hub-card, .ev-card, .news-feature, .news-item, .partner, .dock-a'), function (el) {
-      if (el.closest('.mega, .sp, .main-nav')) return;
-      var surf = document.createElement('span'); surf.className = 'tilt-surf'; surf.setAttribute('aria-hidden', 'true');
-      el.insertBefore(surf, el.firstChild);
-      el.classList.add('tilt');
-      var raf = 0, px = 0, py = 0;
-      function apply() { raf = 0; el.style.setProperty('--gx', ((px + .5) * 100).toFixed(1) + '%'); el.style.setProperty('--gy', ((py + .5) * 100).toFixed(1) + '%'); }
-      el.addEventListener('pointerenter', function () { el.classList.add('is-tilt'); });
-      el.addEventListener('pointermove', function (e) {
-        var r = el.getBoundingClientRect(); px = (e.clientX - r.left) / r.width - .5; py = (e.clientY - r.top) / r.height - .5;
-        if (!raf) raf = requestAnimationFrame(apply);
-      });
-      el.addEventListener('pointerleave', function () { el.classList.remove('is-tilt'); });
+  function halo(el) {
+    if (!fine || reduce || el.classList.contains('tilt') || el.closest('.mega, .sp, .main-nav')) return;
+    var surf = document.createElement('span'); surf.className = 'tilt-surf'; surf.setAttribute('aria-hidden', 'true');
+    el.insertBefore(surf, el.firstChild);
+    el.classList.add('tilt');
+    var raf = 0, px = 0, py = 0;
+    function apply() { raf = 0; el.style.setProperty('--gx', ((px + .5) * 100).toFixed(1) + '%'); el.style.setProperty('--gy', ((py + .5) * 100).toFixed(1) + '%'); }
+    el.addEventListener('pointerenter', function () { el.classList.add('is-tilt'); });
+    el.addEventListener('pointermove', function (e) {
+      var r = el.getBoundingClientRect(); px = (e.clientX - r.left) / r.width - .5; py = (e.clientY - r.top) / r.height - .5;
+      if (!raf) raf = requestAnimationFrame(apply);
     });
+    el.addEventListener('pointerleave', function () { el.classList.remove('is-tilt'); });
   }
-  return { P: P };
+  Array.prototype.forEach.call(document.querySelectorAll('.card, .hub-card, .ev-card, .news-feature, .news-item, .partner, .dock-a'), halo);
+  return { P: P, halo: halo };
 })();
 
 /* ==========================================================================
@@ -1396,4 +1396,211 @@ var CCBA3D = (function () {
   }
   box.addEventListener('input', run); box.addEventListener('change', run);
   run();
+})();
+
+/* ==========================================================================
+   Back-office (Pages CMS). Les rédacteurs saisissent actualités et rendez-vous
+   dans https://app.pagescms.org ; chaque enregistrement modifie un fichier du
+   dépôt (contenu/actualites.json, contenu/agenda.json — schéma dans .pages.yml)
+   et GitHub Pages republie le site. Ici, on lit ces deux fichiers et on les
+   affiche là où le générateur a posé un attribut data-cms :
+     actus-accueil, actus-liste     les actualités, mêlées aux existantes par date
+     agenda-accueil, agenda-liste   les rendez-vous à venir
+     actu, rdv                      la page de lecture (?a=… / ?e=…)
+   Brouillons (« Publié » décoché) et actualités datées dans le futur sont
+   ignorés. Le texte riche est nettoyé (balises et attributs autorisés seulement).
+   ========================================================================== */
+(function () {
+  var hooks = Array.prototype.slice.call(document.querySelectorAll('[data-cms]'));
+  if (!hooks.length || !window.fetch) return;
+  var ROOT = document.body.getAttribute('data-root') || '';
+  var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  var now = new Date(), pad = function (n) { return String(n).padStart(2, '0'); };
+  var TODAY = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  var ARROW = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function iso(v) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v || '')); return m ? m[0] : ''; }
+  function fdate(d) { return +d.slice(8, 10) + ' ' + MOIS[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4); }
+  function slug(s) { return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60); }
+  function media(p) { p = String(p || '').trim(); if (!p) return ''; return /^(https?:)?\/\//.test(p) ? p : ROOT + p.replace(/^\/+/, ''); }
+  function hour(v) { var m = /^(\d{1,2})\s?[hH:]\s?(\d{0,2})$/.exec(String(v || '').trim()); return m ? pad(m[1]) + ':' + pad(m[2] || 0) : ''; }
+  function link(u) { u = String(u || '').trim(); return /^https?:\/\/\S+$/.test(u) ? u : ''; }
+  function load(name) {
+    return fetch(ROOT + 'contenu/' + name + '.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (a) { return Array.isArray(a) ? a : []; }, function () { return []; });
+  }
+  function ids(list) { var seen = {}; list.forEach(function (x) { var k = x.id, n = 2; while (seen[x.id]) x.id = k + '-' + n++; seen[x.id] = 1; }); return list; }
+  function actus(raw) {
+    return ids(raw.filter(function (x) { return x && x.titre && x.publie !== false && iso(x.date) && iso(x.date) <= TODAY; }).map(function (x) {
+      var d = iso(x.date), t = String(x.titre).trim();
+      return { t: t, d: d, x: String(x.resume || '').trim(), img: media(x.image), html: String(x.texte || ''), lien: link(x.lien), id: d + '-' + slug(t) };
+    }).sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; })).map(function (a) { a.url = ROOT + 'actualites/lire/?a=' + encodeURIComponent(a.id); return a; });
+  }
+  function rdvs(raw) {
+    return ids(raw.filter(function (x) { return x && x.titre && x.publie !== false && iso(x.debut); }).map(function (x) {
+      var s = iso(x.debut), e = iso(x.fin), t = String(x.titre).trim();
+      if (!e || e < s) e = s;
+      return { t: t, s: s, e: e, h: hour(x.heure), lieu: String(x.lieu || '').trim(), x: String(x.resume || '').trim(), img: media(x.image), html: String(x.texte || ''), lien: link(x.lien), id: s + '-' + slug(t) };
+    }).sort(function (a, b) { return a.s < b.s ? -1 : a.s > b.s ? 1 : 0; })).map(function (e) { e.url = ROOT + 'agenda/voir/?e=' + encodeURIComponent(e.id); return e; });
+  }
+  function when(e) {
+    if (e.s !== e.e) return 'Du ' + fdate(e.s) + ' au ' + fdate(e.e);
+    return 'Le ' + fdate(e.s) + (e.h ? ' à ' + (+e.h.slice(0, 2)) + 'h' + (e.h.slice(3) === '00' ? '' : e.h.slice(3)) : '');
+  }
+
+  /* --- texte riche : on ne garde que des balises et attributs sûrs --- */
+  var OK = { P: 1, BR: 1, STRONG: 1, B: 1, EM: 1, I: 1, U: 1, S: 1, A: 1, UL: 1, OL: 1, LI: 1, H2: 1, H3: 1, H4: 1, BLOCKQUOTE: 1, IMG: 1, HR: 1, TABLE: 1, THEAD: 1, TBODY: 1, TR: 1, TH: 1, TD: 1, FIGURE: 1, FIGCAPTION: 1, CODE: 1, PRE: 1 };
+  var DROP = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, FORM: 1, INPUT: 1, BUTTON: 1, TEXTAREA: 1, SELECT: 1, LINK: 1, META: 1, SVG: 1, MATH: 1, TEMPLATE: 1, NOSCRIPT: 1, VIDEO: 1, AUDIO: 1 };
+  function clean(html) {
+    var doc = new DOMParser().parseFromString('<div>' + html + '</div>', 'text/html'), root = doc.body.firstChild;
+    if (!root) return '';
+    Array.prototype.slice.call(root.querySelectorAll('*')).reverse().forEach(function (el) {
+      var tag = el.tagName.toUpperCase();
+      if (DROP[tag]) { el.remove(); return; }
+      if (tag === 'H1') { var h = doc.createElement('h2'); while (el.firstChild) h.appendChild(el.firstChild); el.parentNode.replaceChild(h, el); return; }
+      if (!OK[tag]) { while (el.firstChild) el.parentNode.insertBefore(el.firstChild, el); el.remove(); return; }
+      var href = el.getAttribute('href'), src = el.getAttribute('src'), alt = el.getAttribute('alt'), cs = el.getAttribute('colspan'), rs = el.getAttribute('rowspan');
+      Array.prototype.slice.call(el.attributes).forEach(function (a) { el.removeAttribute(a.name); });
+      if (tag === 'A') {
+        href = String(href || '').trim();
+        if (/^(https?:\/\/|mailto:|tel:)/i.test(href)) { el.setAttribute('href', href); if (/^https?:/i.test(href)) { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener'); } }
+        else if (/^[\/#.\w-]/.test(href) && !/^\s*[a-z][a-z0-9+.-]*:/i.test(href)) el.setAttribute('href', href.charAt(0) === '/' ? ROOT + href.replace(/^\/+/, '') : href);
+      }
+      if (tag === 'IMG') {
+        src = String(src || '').trim();
+        if (!src || /^\s*(javascript|data|vbscript):/i.test(src)) { el.remove(); return; }
+        el.setAttribute('src', media(src)); el.setAttribute('alt', alt || ''); el.setAttribute('loading', 'lazy');
+      }
+      if ((tag === 'TD' || tag === 'TH')) { if (/^\d+$/.test(cs || '')) el.setAttribute('colspan', cs); if (/^\d+$/.test(rs || '')) el.setAttribute('rowspan', rs); }
+    });
+    return root.innerHTML;
+  }
+
+  /* --- gabarits (mêmes balises que le générateur : render.py, pages.py, site.py) --- */
+  var coverSrc = document.querySelector('.ph > svg.cover');
+  function ph(img, cls) {
+    var art = coverSrc ? coverSrc.outerHTML : '';
+    return img ? '<div class="ph ' + cls + '">' + art + '<img src="' + esc(img) + '" alt="" loading="lazy" decoding="async"></div>'
+               : '<div class="ph ph-art ' + cls + '" aria-hidden="true">' + art + '</div>';
+  }
+  function meta(d) { return '<p class="card-meta"><time datetime="' + d + '">' + fdate(d) + '</time></p>'; }
+  function tFeature(a) {
+    return '<article class="news-feature reveal"><a class="nf-media" href="' + esc(a.url) + '" tabindex="-1" aria-hidden="true">' + (a.ph || ph(a.img, 'nf-ph')) + '</a>' + meta(a.d) +
+      '<h3 class="nf-title"><a href="' + esc(a.url) + '">' + esc(a.t) + '</a></h3>' + (a.x ? '<p class="nf-text">' + esc(a.x) + '</p>' : '') + '</article>';
+  }
+  function tItem(a) {
+    return '<li class="reveal"><article class="news-item">' + (a.ph || ph(a.img, 'ni-media')) + '<div class="ni-body">' + meta(a.d) +
+      '<h3 class="ni-title"><a href="' + esc(a.url) + '">' + esc(a.t) + '</a></h3></div></article></li>';
+  }
+  function tCard(a) {
+    return '<article class="card news-card reveal">' + ph(a.img, 'card-media') + '<div class="card-body">' + meta(a.d) +
+      '<h3 class="card-title"><a href="' + esc(a.url) + '">' + esc(a.t) + '</a></h3>' + (a.x ? '<p class="card-text">' + esc(a.x) + '</p>' : '') + '</div></article>';
+  }
+  function tEvent(e) {
+    var m = MOIS[+e.s.slice(5, 7) - 1];
+    return '<article class="ev-card reveal" data-end="' + e.e + '" data-start="' + e.s + '"><div class="ev-date" aria-hidden="true"><span class="ev-day">' + (+e.s.slice(8, 10)) + '</span>' +
+      '<span class="ev-month">' + m.slice(0, 4) + (m.length > 4 ? '.' : '') + '</span><span class="ev-year">' + e.s.slice(0, 4) + '</span></div>' +
+      '<div class="ev-body"><p class="card-meta">' + esc(when(e)) + (e.lieu ? ' · ' + esc(e.lieu) : '') + '</p><h3 class="card-title"><a href="' + esc(e.url) + '">' + esc(e.t) + '</a></h3>' +
+      (e.x ? '<p class="card-text">' + esc(e.x) + '</p>' : '') + '</div></article>';
+  }
+  function node(html) { var t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+  function dress(el) {                                             // même habillage que les cartes d'origine : apparition au défilement, halo au survol
+    try { Array.prototype.forEach.call(el.matches('.card, .ev-card, .news-feature') ? [el] : el.querySelectorAll('.news-item'), CCBA3D.halo); } catch (e) {}
+    setTimeout(function () { if (window.CCBA_reveal) window.CCBA_reveal(el); else el.classList.add('is-in'); }, 0);
+    Array.prototype.forEach.call(el.querySelectorAll('.ph img'), function (img) {   // l'image apparaît une fois chargée ; absente, le motif reste
+      var ok = function () { img.classList.add('is-loaded'); };
+      if (img.complete && img.naturalWidth) ok(); else img.addEventListener('load', ok);
+      img.addEventListener('error', function () { img.classList.add('is-broken'); img.setAttribute('aria-hidden', 'true'); });
+    });
+    return el;
+  }
+
+  /* --- accueil : les cinq actualités les plus récentes, back-office et existantes mêlées --- */
+  function homeNews(box, list) {
+    if (!list.length) return;
+    var feat = box.querySelector('.news-feature'), ol = box.querySelector('.news-list'); if (!feat || !ol) return;
+    var old = [feat].concat(Array.prototype.slice.call(ol.querySelectorAll('.news-item'))).map(function (el) {
+      var a = el.querySelector('h3 a'), t = el.querySelector('time'), p = el.querySelector('.ph'), x = el.querySelector('.nf-text');
+      return { t: a.textContent, url: a.getAttribute('href'), d: t ? t.getAttribute('datetime') : '', x: x ? x.textContent : '', phEl: p };
+    });
+    var all = list.concat(old).sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; }).slice(0, old.length);
+    var cls = function (a, c) { if (!a.phEl) return ''; var k = a.phEl.cloneNode(true); k.classList.remove('nf-ph', 'ni-media', 'm-done'); k.classList.add(c); return k.outerHTML; };
+    var nf = node(tFeature(Object.assign({}, all[0], { ph: cls(all[0], 'nf-ph') })));
+    feat.parentNode.replaceChild(dress(nf), feat);
+    ol.innerHTML = '';
+    all.slice(1).forEach(function (a) { ol.appendChild(dress(node(tItem(Object.assign({}, a, { ph: cls(a, 'ni-media') }))))); });
+  }
+  /* --- page Actualités : chaque actualité saisie prend sa place dans la liste, par date --- */
+  function listNews(grid, list) {
+    list.slice().reverse().forEach(function (a) {
+      var cards = Array.prototype.slice.call(grid.children), before = null;
+      for (var i = 0; i < cards.length; i++) { var t = cards[i].querySelector('time'); if (t && t.getAttribute('datetime') <= a.d) { before = cards[i]; break; } }
+      grid.insertBefore(dress(node(tCard(a))), before);
+    });
+  }
+  /* --- agenda (accueil et page) : les rendez-vous à venir, dans l'ordre --- */
+  function events(grid, list) {
+    var up = list.filter(function (e) { return e.e >= TODAY; }); if (!up.length) return;
+    var sec = grid.closest('section') || document, lim = parseInt(grid.getAttribute('data-limit') || '0', 10);
+    if (!grid.hasAttribute('data-upcoming')) {                       // l'accueil montrait les derniers rendez-vous passés : place aux prochains
+      grid.innerHTML = ''; grid.setAttribute('data-upcoming', ''); if (!lim) lim = 4;
+      var k = sec.querySelector('.sec-head .kicker'); if (k) k.textContent = 'Sortir, participer';
+    }
+    up.forEach(function (e) {
+      var cards = Array.prototype.slice.call(grid.querySelectorAll('.ev-card')), before = null;
+      for (var i = 0; i < cards.length; i++) { var s = cards[i].getAttribute('data-start') || cards[i].getAttribute('data-end'); if (s > e.s) { before = cards[i]; break; } }
+      grid.insertBefore(dress(node(tEvent(e))), before);
+    });
+    var shown = 0;
+    Array.prototype.forEach.call(grid.querySelectorAll('.ev-card'), function (c) { var ok = c.getAttribute('data-end') >= TODAY && (!lim || shown < lim); c.hidden = !ok; if (ok) shown++; });
+    grid.hidden = false;
+    Array.prototype.forEach.call(grid.parentElement.querySelectorAll('[data-empty]'), function (m) { m.hidden = true; });
+  }
+  /* --- page de lecture --- */
+  function title(text) {
+    var h = document.querySelector('[data-cms-title]'); if (!h) return;
+    h.setAttribute('aria-label', text);
+    h.className = 'm-split' + (text.length > 70 ? ' h-xl' : text.length > 38 ? ' h-long' : '');
+    h.innerHTML = '<span aria-hidden="true">' + text.split(/[ \t\n\r]+/).filter(Boolean).map(function (w, i) { return '<span class="mw"><span style="--i:' + i + '">' + esc(w) + '</span></span>'; }).join(' ') + '</span>';
+    var c = document.querySelector('.crumbs [aria-current]'); if (c) c.textContent = text;
+    document.title = text + ' – CCBA';
+  }
+  function reader(box, list, param, kind) {
+    var id = '', body = box.querySelector('[data-cms-body]'), date = box.querySelector('[data-cms-date]');
+    try { id = new URLSearchParams(location.search).get(param) || ''; } catch (e) {}
+    var it = list.filter(function (x) { return x.id === id; })[0];
+    if (!it) {
+      title(kind === 'actu' ? 'Actualité introuvable' : 'Rendez-vous introuvable');
+      Array.prototype.forEach.call(box.querySelectorAll('.art-meta, .callout, .ev-actions'), function (el) { el.hidden = true; });
+      body.innerHTML = '<p>Ce contenu n’existe pas ou n’est plus en ligne.</p>';
+      return;
+    }
+    title(it.t);
+    var lead = document.querySelector('[data-cms-lead]'); if (lead && it.x) { lead.textContent = it.x; lead.hidden = false; }
+    var md = document.querySelector('meta[name="description"]'); if (md && it.x) md.setAttribute('content', it.x);
+    if (date) date.textContent = kind === 'actu' ? 'Publié le ' + fdate(it.d) : when(it);
+    if (kind === 'rdv') {
+      var lieu = box.querySelector('[data-cms-lieu]'); if (lieu && it.lieu) { lieu.querySelector('span').textContent = it.lieu; lieu.hidden = false; }
+      var ev = box.querySelector('[data-ev]'); if (ev) ev.setAttribute('data-ev', JSON.stringify({ t: it.t, s: it.s, e: it.e, h: it.h }));
+    }
+    var html = (it.img ? '<p class="cms-img"><img src="' + esc(it.img) + '" alt=""></p>' : '') + clean(it.html);
+    if (it.lien) html += '<p><a class="link-arrow" href="' + esc(it.lien) + '" target="_blank" rel="noopener">En savoir plus ' + ARROW + '<span class="sr-only"> (nouvelle fenêtre)</span></a></p>';
+    body.innerHTML = html;
+  }
+
+  var need = function (re) { return hooks.some(function (h) { return re.test(h.getAttribute('data-cms')); }); };
+  Promise.all([need(/^actu/) ? load('actualites') : [], need(/^(agenda|rdv)/) ? load('agenda') : []]).then(function (r) {
+    var A = actus(r[0]), E = rdvs(r[1]);
+    hooks.forEach(function (h) {
+      try {
+        var k = h.getAttribute('data-cms');
+        if (k === 'actus-accueil') homeNews(h, A);
+        else if (k === 'actus-liste') listNews(h, A);
+        else if (k === 'agenda-accueil' || k === 'agenda-liste') events(h, E);
+        else if (k === 'actu') reader(h, A, 'a', 'actu');
+        else if (k === 'rdv') reader(h, E, 'e', 'rdv');
+      } catch (e) { if (window.console) console.warn('back-office :', e); }
+    });
+  });
 })();
