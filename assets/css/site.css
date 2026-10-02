@@ -1441,29 +1441,29 @@ html:not(.js) .jv-find { display: none; }
 .cb-btn.is-open { padding: 8px; }
 @media (max-width: 640px) { .cb-btn { padding: 8px; } .cb-btn-l { display: none; } }
 
-.cb-face { width: 44px; height: 44px; flex: none; overflow: visible; }
-.cb-disc { fill: var(--peche); }
-.cb-rays { transform-origin: 24px 24px; }
-.cb-ray { stroke: var(--peche); stroke-width: 2.4; stroke-linecap: round; opacity: .5;
-  transform-origin: 24px 24px; transition: transform .45s var(--ease-out), opacity .3s; }
-.cb-diag { fill: none; stroke: var(--cassis); stroke-width: 2.6; stroke-linecap: round; }
-.cb-pup { fill: #fff; }
-.cb-mouth { fill: none; stroke: #fff; stroke-width: 1.9; stroke-linecap: round; }
-.cb-eyes { transform: translate(calc(var(--ex, 0) * 1px), calc(var(--ey, 0) * 1px)); transition: transform .5s var(--ease-out); }
-.cb-eye { transition: transform .09s ease-in; transform-origin: center 22px; }
-.cb-face.is-blink .cb-eye { transform: scaleY(.1); }
-.cb-think { fill: #fff; opacity: 0; }
-/* au survol : les rayons s'écartent */
-.cb-btn:hover .cb-ray, .cb-btn:focus-visible .cb-ray, .cb-head:hover .cb-ray { opacity: .95; transform: rotate(calc(var(--r) * 45deg)) translateY(-2px); }
-/* pendant la réponse : la bouche devient trois points et les yeux lèvent le regard */
-.is-busy .cb-mouth { opacity: 0; }
-.is-busy .cb-think { opacity: 1; }
-.is-busy .cb-think circle { animation: cbDot 1.1s infinite; }
-.is-busy .cb-think circle:nth-child(2) { animation-delay: .16s; }
-.is-busy .cb-think circle:nth-child(3) { animation-delay: .32s; }
-.is-busy .cb-eyes { opacity: 0; }
-.is-busy .cb-rays { animation: cbSpin 9s linear infinite; }
-@keyframes cbSpin { to { transform: rotate(360deg); } }
+/* Emblème d'Aube : la crête du territoire dans un disque (voir chatbot.js) */
+.cb-face { width: 44px; height: 44px; flex: none; fill: none; stroke-linecap: round; stroke-linejoin: round; border-radius: 50%; }
+.cb-sky { fill: var(--cassis); }
+.cb-hill { fill: var(--peche); }
+.cb-far { stroke: var(--marron); stroke-width: 1.4; }
+.cb-line, .cb-wave { stroke: #fff; stroke-width: 2.1; }
+.cb-line { stroke-dasharray: 1; }
+.cb-wave { opacity: 0; }
+.cb-hill, .cb-far, .cb-line, .cb-wave { transition: transform .7s var(--ease-out), opacity .35s; }
+.cb-btn .cb-line { animation: cbDraw 1.3s var(--ease-out) .5s backwards; }               /* à l'arrivée : la crête se trace */
+/* survol : les plans du relief glissent l'un sur l'autre */
+.cb-btn:hover .cb-line, .cb-btn:focus-visible .cb-line, .cb-head:hover .cb-line { transform: translateX(-3px); }
+.cb-btn:hover .cb-far, .cb-btn:focus-visible .cb-far, .cb-head:hover .cb-far { transform: translateX(3px); }
+.cb-btn:hover .cb-hill, .cb-btn:focus-visible .cb-hill, .cb-head:hover .cb-hill { transform: translate(-1.5px, -1px); }
+/* Aube cherche : les deux tracés respirent à contretemps */
+.is-busy .cb-line { animation: cbBob 1.5s ease-in-out infinite; }
+.is-busy .cb-far { animation: cbBob 1.5s ease-in-out -.75s infinite; }
+/* Aube répond : le tracé blanc devient une onde qui file */
+.is-talk .cb-line { opacity: 0; animation: none; }
+.is-talk .cb-wave { opacity: 1; animation: cbFlow 1s linear infinite; }
+@keyframes cbDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes cbBob { 0%, 100% { transform: translateY(1.6px); } 50% { transform: translateY(-1.8px); } }
+@keyframes cbFlow { to { transform: translateX(24px); } }
 @keyframes cbDot { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-2.5px); opacity: 1; } }
 
 .cb-panel { position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: calc(max(16px, env(safe-area-inset-bottom)) + 66px); z-index: 901;
@@ -1519,8 +1519,8 @@ html:not(.js) .jv-find { display: none; }
 html.cb-on { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) {
   .cb-panel { animation: none; } .cb-btn { transition: none; } .cb-btn:hover { transform: none; }
-  .cb-eyes, .cb-eye, .cb-ray { transition: none; } .is-busy .cb-rays { animation: none; }
-  .cb-dots span, .is-busy .cb-think circle { animation: none; opacity: .7; }
+  .cb-hill, .cb-far, .cb-line, .cb-wave { transition: none; animation: none !important; }
+  .cb-dots span { animation: none; opacity: .7; }
 }
 @media print { .cb-btn, .cb-panel { display: none !important; } }
 [data-bot-open] { display: none; }

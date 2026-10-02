@@ -1,7 +1,7 @@
 /* ==========================================================================
    « Aube » — assistante du site (chatbot)
-   Visage dessiné en SVG : il cligne des yeux, suit le pointeur, réfléchit
-   pendant l'attente et parle pendant la réponse. Les réponses viennent d'un
+   Emblème dessiné en SVG : la ligne de crête du territoire dans un disque. La
+   ligne ondule pendant qu'Aube cherche et devient une onde quand elle répond. Les réponses viennent d'un
    modèle Gemini qui reçoit, en prompt système, le contenu du site (assets/data/kb.txt) —
    directement depuis le navigateur, ou via le Worker Cloudflare (worker/src/index.js) si son
    adresse est renseignée dans assets/data/bot.json.
@@ -22,62 +22,39 @@
   function setApiKey(k) { try { localStorage.setItem(KEY_LS, k); } catch (e) {} }
   function clearApiKey() { try { localStorage.removeItem(KEY_LS); } catch (e) {} }
 
-  /* ---------------------------------------------------------------- visage */
-  /* Aube : un petit soleil levant — le motif du site (le nom, l'intro « Un trait de lumière »,
-     le soleil rouge pêche de l'accueil et la diagonale du logo). */
-  var RAYS = '';
-  for (var k = 0; k < 8; k++) RAYS += '<line class="cb-ray" style="--r:' + k + '" transform="rotate(' + (k * 45) + ' 24 24)" x1="24" y1="5.5" x2="24" y2="1.5"/>';
-  var FACE = '<svg class="cb-face" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
-    '<g class="cb-rays">' + RAYS + '</g>' +
-    '<path class="cb-diag" d="M34 13 41 6"/>' +
-    '<circle class="cb-disc" cx="24" cy="24" r="15.5"/>' +
-    '<g class="cb-eyes">' +
-      '<g class="cb-eye"><circle class="cb-pup" cx="19" cy="22" r="1.9"/></g>' +
-      '<g class="cb-eye"><circle class="cb-pup" cx="29" cy="22" r="1.9"/></g>' +
-    '</g>' +
-    '<path class="cb-mouth" d="M18.5 28.5q5.5 5 11 0"/>' +
-    '<g class="cb-think"><circle cx="17.5" cy="24" r="2"/><circle cx="24" cy="24" r="2"/><circle cx="30.5" cy="24" r="2"/></g>' +
-    '</svg>';
-
-  function animateFace(svg) {
-    var eyes = svg.querySelector('.cb-eyes');
-    if (reduce) return { look: function () {}, stop: function () {} };
-    var blink = 0;
-    function doBlink() {
-      svg.classList.add('is-blink');
-      setTimeout(function () { svg.classList.remove('is-blink'); }, 150);
-      blink = setTimeout(doBlink, 2600 + Math.random() * 4200);
-    }
-    blink = setTimeout(doBlink, 1800 + Math.random() * 2000);
-    function look(e) {
-      var r = svg.getBoundingClientRect();
-      if (!r.width) return;
-      var dx = (e.clientX - (r.left + r.width / 2)) / (r.width * 1.7);
-      var dy = (e.clientY - (r.top + r.height / 2)) / (r.height * 1.7);
-      var m = Math.min(1, Math.hypot(dx, dy)) / (Math.hypot(dx, dy) || 1);
-      eyes.style.setProperty('--ex', (dx * m * 1.9).toFixed(2));
-      eyes.style.setProperty('--ey', (dy * m * 1.5).toFixed(2));
-    }
-    return { look: look, stop: function () { clearTimeout(blink); } };
+  /* ---------------------------------------------------------------- emblème */
+  /* Aube : la crête du territoire dans un disque — le motif de l'accueil (film découpé par la ligne de
+     crête, doublée de deux tracés) et de l'icône du site. Deux tracés : le blanc est la « voix » d'Aube
+     (il devient une onde qui file quand elle répond), le beige le relief au loin. Aucun visage. */
+  var markN = 0;
+  function mark() {
+    var id = 'cb-clip-' + (++markN);                    // un découpage par exemplaire (bouton, en-tête)
+    return '<svg class="cb-face" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' +
+      '<defs><clipPath id="' + id + '"><circle cx="24" cy="24" r="24"/></clipPath></defs>' +
+      '<g clip-path="url(#' + id + ')">' +
+        '<rect class="cb-sky" width="48" height="48"/>' +
+        '<path class="cb-hill" d="M-8 38l6-4c7-6 13-9 20-9s11 4 17 4 9-3 15-7l6-4v38H-8z"/>' +
+        '<path class="cb-far" d="M-8 25l6-4c7-6 13-9 20-9s11 4 17 4 9-3 15-7l6-4"/>' +
+        '<path class="cb-line" d="M-8 31.5l6-4c7-6 13-9 20-9s11 4 17 4 9-3 15-7l6-4" pathLength="1"/>' +
+        '<path class="cb-wave" d="M-24 22.5q6-7 12 0t12 0 12 0 12 0 12 0 12 0 12 0"/>' +
+      '</g></svg>';
   }
 
   /* ---------------------------------------------------------------- bouton */
   var btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'cb-btn'; btn.id = 'cb-btn';
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'cb-panel');
-  btn.innerHTML = FACE + '<span class="cb-btn-l">Poser une question</span><span class="sr-only">Ouvrir l’assistante du site</span>';
+  btn.innerHTML = mark() + '<span class="cb-btn-l">Poser une question</span><span class="sr-only">Ouvrir l’assistante du site</span>';
   document.body.appendChild(btn);
-  var faceAnim = animateFace(btn.querySelector('.cb-face'));
-  if (!reduce) addEventListener('pointermove', function (e) { faceAnim.look(e); }, { passive: true });
 
   var panel = null, list = null, input = null, form = null, hist = [], busy = false, controller = null;
 
   var SUGGEST = [
-    'Quel jour sont ramassées mes poubelles à Vesseaux ?',
-    'France Services est ouvert maintenant ?',
-    'Je veux agrandir ma maison, quelles démarches ?',
-    'Comment inscrire mon enfant au centre de loisirs ?',
-    'Quels sont les horaires de la piscine ?',
+    'Quel jour sont ramassées mes poubelles à Vesseaux\u00a0?',
+    'France Services est ouvert maintenant\u00a0?',
+    'Je veux agrandir ma maison, quelles démarches\u00a0?',
+    'Comment inscrire mon enfant au centre de loisirs\u00a0?',
+    'Quels sont les horaires de la piscine\u00a0?',
   ];
 
   function build() {
@@ -85,7 +62,7 @@
     panel.className = 'cb-panel'; panel.id = 'cb-panel'; panel.hidden = true;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'false'); panel.setAttribute('aria-labelledby', 'cb-title');
     panel.innerHTML =
-      '<header class="cb-head">' + FACE +
+      '<header class="cb-head">' + mark() +
         '<div><p class="cb-title" id="cb-title">Aube</p><p class="cb-sub">L’assistante du site</p></div>' +
         '<button type="button" class="cb-x" aria-label="Fermer l’assistante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</header>' +
@@ -98,7 +75,6 @@
       '<p class="cb-legal">Réponses générées automatiquement à partir des pages du site. Elles peuvent être incomplètes&nbsp;: en cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>. N’indiquez pas d’informations personnelles. Votre clé API Gemini reste dans ce navigateur — <button type="button" class="cb-linklike" id="cb-rekey">changer de clé</button>.</p>';
     document.body.appendChild(panel);
     list = panel.querySelector('.cb-log'); form = panel.querySelector('.cb-form'); input = panel.querySelector('#cb-in');
-    animateFace(panel.querySelector('.cb-face'));
     panel.querySelector('#cb-rekey').addEventListener('click', function () { clearApiKey(); askKey('Collez une nouvelle clé pour continuer.'); });
     panel.querySelector('.cb-x').addEventListener('click', function () { toggle(false); });
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
@@ -316,7 +292,7 @@
     var out = bubble('model', '<p class="cb-dots" aria-label="Aube rédige sa réponse"><span></span><span></span><span></span></p>', 'is-live');
     var acc = '';
     controller = new AbortController();
-    var onText = function (t) { acc += t; out.innerHTML = '<span class="sr-only">Aube : </span>' + linkify(acc); scroll(); };
+    var onText = function (t) { if (!acc) { panel.classList.add('is-talk'); btn.classList.add('is-talk'); } acc += t; out.innerHTML = '<span class="sr-only">Aube : </span>' + linkify(acc); scroll(); };
     (API ? viaWorker : direct)(hist.slice(-16), controller.signal, onText).then(function () {
       if (!acc) throw new Error('Réponse vide.');
       hist.push({ role: 'model', text: acc });
@@ -336,7 +312,7 @@
         '<p class="cb-errd">' + esc(e.message || '') + '</p>';
     }).then(function () {
       busy = false; controller = null;
-      panel.classList.remove('is-busy'); btn.classList.remove('is-busy');
+      panel.classList.remove('is-busy', 'is-talk'); btn.classList.remove('is-busy', 'is-talk');
       out.classList.remove('is-live');
       input.focus();
     });

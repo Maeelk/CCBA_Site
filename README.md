@@ -87,7 +87,7 @@ La carte des 28 communes (accueil, page « Nos 28 communes », encart « Situer�
 
 ## Assistante « Aube » — chatbot (version 3.14, maquette)
 
-Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui répond aux questions des usagers à partir du contenu du site. Icône dessinée en code : un petit soleil levant (le motif du site : le nom « Aube », l’intro « Un trait de lumière », le soleil de l’accueil et la diagonale du logo). Il cligne des yeux, suit le pointeur, écarte ses rayons au survol et se met à réfléchir pendant la réponse.
+Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui répond aux questions des usagers à partir du contenu du site. Emblème dessiné en code : la ligne de crête du territoire dans un disque (le motif de l’accueil — le film découpé par la crête et ses deux tracés — et de l’icône du site), sans visage. La crête se trace à l’arrivée ; les plans du relief glissent au survol ; les deux tracés respirent pendant qu’Aube cherche, puis le tracé blanc devient une onde qui file pendant qu’elle répond.
 
 ### Comment ça marche
 1. **Base de connaissances** (`kb.py` → `assets/data/kb.txt`, ≈ 334 Ko / 83 000 jetons) : régénérée à chaque mise en ligne. Elle contient l’arborescence, le texte de 148 pages de contenu, les horaires en clair, les 28 communes (population, maire, altitude, jours de collecte, guichet France Services le plus proche), les 64 réponses vérifiées de « Je veux… », les annonces de la bourse, les actualités et l’agenda récents.
