@@ -5,8 +5,10 @@
    à écrire, Canvas 2D (gerbe d'étincelles à 45°, comme le trait du logo),
    dégradés CSS pilotés au pointeur. Tout est ponctuel (aucune boucle
    continue) et désactivé si l'usager demande de réduire les animations.
-   Navigation par l'ancre (#travaux/0/1) : retour arrière du navigateur,
-   liens partageables, lecture sans JavaScript assurée par le HTML statique.
+   Trois temps : un thème (page d'entrée), un besoin, puis une ou deux
+   questions. Navigation par l'ancre (#habiter/1/0) : retour arrière du
+   navigateur, liens partageables ; les anciennes ancres (#travaux/0) sont
+   converties. Lecture sans JavaScript assurée par le HTML statique.
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
@@ -22,8 +24,10 @@ document.addEventListener('DOMContentLoaded', function () {
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
   var EASE = 'cubic-bezier(.16,1,.3,1)', BACK = 'cubic-bezier(.34,1.56,.64,1)';
-  var grid = $('.jv-grid'), stage = $('.jv-stage'), input = $('#jv-q'), count = $('#jv-count');
-  var ICON = {}; $$('.jv-card[data-j]').forEach(function (a) { ICON[a.getAttribute('data-j')] = a.querySelector('svg').innerHTML; });
+  var grid = $('.jv-grid'), stage = $('.jv-stage'), input = $('#jv-q'), count = $('#jv-count'), hits = $('.jv-hits'), other = $('.jv-else');
+  var ICONS = DATA.icons, NEED = {}; DATA.needs.forEach(function (n) { NEED[n.id] = n; });
+  var svgIco = function (name) { return '<svg class="jv-ico" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + (ICONS[name] || '') + '</svg>'; };
+  var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
   var TITLE = document.title;
   root.classList.add('is-live');
 
@@ -53,50 +57,35 @@ document.addEventListener('DOMContentLoaded', function () {
     return p.then(function () { if (token === typeToken) caret.classList.add('is-rest'); });
   }
   function demo() {                                     // trois exemples, puis « … » (aucune boucle)
-    var token = typeToken, pick = ['travaux', 'dechets', 'enfant'].map(function (id) { return J[id] ? J[id].label : ''; }).filter(Boolean);
+    var token = typeToken, pick = ['travaux', 'dechets', 'enfant'].map(function (id) { return NEED[id] ? NEED[id].label : ''; }).filter(Boolean);
     var p = sleep(700);
     pick.forEach(function (t) { p = p.then(function () { if (token === typeToken) return typeTo(t).then(function () { token = typeToken; return sleep(1300); }); }); });
     return p.then(function () { if (token === typeToken) return typeTo('…'); });
   }
 
-  /* ---------------------------------------------------------------- filtre des besoins */
-  var hay = {};
-  DATA.journeys.forEach(function (j) {
-    var bits = [j.label].concat(j.kw || []);
-    Object.keys(j.q).forEach(function (k) { bits.push(j.q[k].text); j.q[k].options.forEach(function (o) { bits.push(o.label, o.hint || ''); }); });
-    Object.keys(j.r).forEach(function (k) { bits.push(j.r[k].title); });
-    hay[j.id] = bits.join(' · ');
-  });
-  function flip(els, change) {                          // FLIP : mesure, change, puis anime le déplacement
-    var first = els.map(function (e) { return e.getBoundingClientRect(); });
-    change();
-    if (!anim) return;
-    els.forEach(function (e, i) {
-      if (e.hidden) return;
-      var last = e.getBoundingClientRect(), dx = first[i].left - last.left, dy = first[i].top - last.top;
-      if (first[i].width === 0) { e.animate([{ opacity: 0, transform: 'scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 380, easing: EASE }); return; }
-      if (dx || dy) e.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: 460, easing: EASE });
-    });
-  }
+  /* ---------------------------------------------------------------- recherche d'un besoin
+     Dès qu'on écrit, les thèmes laissent la place aux besoins qui correspondent : on y va directement. */
   function filter() {
-    var q = input.value.trim(), m = window.CCBAFind ? CCBAFind.matcher(q) : function () { return 1; }, n = 0;
-    var lis = $$('.jv-grid > li');
-    flip(lis, function () {
-      lis.forEach(function (li) {
-        var a = li.querySelector('[data-j]');
-        if (!a) { li.hidden = false; return; }
-        var ok = !q || m(hay[a.getAttribute('data-j')]) > 0;
-        li.hidden = !ok; if (ok) n++;
-      });
-    });
-    count.innerHTML = !q ? '' : n ? n + ' besoin' + (n > 1 ? 's correspondent' : ' correspond') + ' à « ' + esc(q) + ' »'
+    var q = input.value.trim();
+    if (!q) { hits.hidden = true; hits.innerHTML = ''; grid.hidden = false; count.textContent = ''; return; }
+    var m = window.CCBAFind ? CCBAFind.matcher(q) : function (t) { return t.toLowerCase().indexOf(q.toLowerCase()) >= 0 ? 1 : 0; };
+    var found = DATA.needs.map(function (n) { return { n: n, s: m(n.h) }; }).filter(function (x) { return x.s > 0; })
+      .sort(function (a, b) { return b.s - a.s; }).map(function (x) { return x.n; });
+    hits.innerHTML = found.map(function (n) {
+      return '<li><a class="jv-hit" href="' + hashOf(n.g, [n.i]) + '">' + svgIco(n.icon) + '<span class="jv-hit-t"><span class="jv-dots" aria-hidden="true">…</span>' + esc(n.label) +
+        '</span><span class="jv-hit-g">' + esc(J[n.g].label) + '</span>' + ARROW + '</a></li>';
+    }).join('');
+    grid.hidden = true; hits.hidden = !found.length;
+    if (anim) $$('.jv-hit', hits).forEach(function (a, i) { a.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: i * 35, easing: EASE, fill: 'backwards' }); });
+    var n = found.length;
+    count.innerHTML = n ? n + ' besoin' + (n > 1 ? 's correspondent' : ' correspond') + ' à « ' + esc(q) + ' »'
       : 'Aucun parcours ne correspond. <a href="' + ROOT + 'recherche/?q=' + encodeURIComponent(q) + '">Rechercher « ' + esc(q) + ' » sur tout le site</a>';
   }
   input.addEventListener('input', function () { typeToken++; caret.classList.add('is-rest'); filter(); });
   input.addEventListener('keydown', function (e) {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    var vis = $$('.jv-grid > li:not([hidden]) [data-j]');
+    var vis = $$('.jv-hit', hits);
     if (vis.length === 1) vis[0].click(); else if (vis.length) vis[0].focus();
   });
 
@@ -104,8 +93,14 @@ document.addEventListener('DOMContentLoaded', function () {
   function parse() {
     var h = decodeURIComponent(location.hash.slice(1)); if (!h) return null;
     var parts = h.split('/'), id = parts[0];
+    var path = parts.slice(1).filter(function (x) { return x !== ''; }).map(Number).filter(function (n) { return n >= 0; });
+    var al = DATA.alias[id];
+    if (al) {                                             // ancienne ancre d'un besoin : on la réécrit sous son thème
+      id = al[0]; path = [al[1]].concat(path);
+      history.replaceState(null, '', hashOf(id, path));
+    }
     if (!J[id]) return null;
-    return { id: id, path: parts.slice(1).filter(function (x) { return x !== ''; }).map(Number).filter(function (n) { return n >= 0; }) };
+    return { id: id, path: path };
   }
   function walk(j, path) {
     var qid = j.start, steps = [];
@@ -140,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
       (r.steps.length ? '<h3 class="jv-sub">Les étapes</h3><ol class="jv-steps">' + r.steps.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ol>' : '') +
       (r.contact ? '<div class="jv-contact"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5 9 3l2 4.6-2.2 1.5a11 11 0 0 0 6.1 6.1l1.5-2.2 4.6 2-.5 2.4a2 2 0 0 1-2 1.6A16.5 16.5 0 0 1 5 5.5a2 2 0 0 1 1.6-2z"/></svg><p>' + r.contact + '</p></div>' : '') +
       '<div class="jv-links">' + (internal[0] ? linkHTML(internal[0], true) : '') + others.map(function (l) { return linkHTML(l, false); }).join('') + '</div>' +
-      '<div class="jv-again"><a class="jv-restart" href="' + hashOf(j.id, []) + '">Recommencer ce parcours</a><a class="jv-other" href="#">Un autre besoin</a>' +
+      '<div class="jv-again"><a class="jv-restart" href="' + hashOf(j.id, path.slice(0, 1)) + '">Recommencer ce parcours</a><a class="jv-other" href="#">Un autre besoin</a>' +
       (r.src && r.src[0] ? '<p class="jv-src">Réponse tirée de la page <a href="' + ROOT + r.src[0] + '">' + esc(r.src[0].replace(/\/$/, '').split('/').pop().replace(/-/g, ' ')) + '</a> du site.</p>' : '') + '</div>' +
       '</article>';
   }
@@ -158,17 +153,28 @@ document.addEventListener('DOMContentLoaded', function () {
       out += '<li class="jv-step is-now"><span class="jv-node" aria-hidden="true"><span>' + (n + 1) + '</span></span>' +
         '<div class="jv-qbox" role="group" aria-labelledby="jv-qt"><h2 class="jv-h" id="jv-qt" tabindex="-1">' + esc(w.q.text) + '</h2><div class="jv-opts">' +
         w.q.options.map(function (o, i) {
-          return '<a class="jv-opt" href="' + hashOf(j.id, path.slice(0, n).concat(i)) + '" style="--o:' + i + '"><span class="jv-opt-t">' + esc(o.label) + '</span>' +
+          return '<a class="jv-opt' + (o.icon ? ' has-ico' : '') + '" href="' + hashOf(j.id, path.slice(0, n).concat(i)) + '" style="--o:' + i + '">' + (o.icon ? svgIco(o.icon) : '') + '<span class="jv-opt-t">' + esc(o.label) + '</span>' +
             (o.hint ? '<span class="jv-opt-h">' + esc(o.hint) + '</span>' : '') + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></a>';
         }).join('') + '</div></div></li>';
     }
     return out + '</ol>';
   }
   function shell(j) {
-    stage.innerHTML = '<div class="jv-bar"><a class="jv-back" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M11 6l-6 6 6 6"/></svg>Tous les besoins</a>' +
-      '<p class="jv-sel"><svg class="jv-ico" viewBox="0 0 48 48" aria-hidden="true">' + ICON[j.id] + '</svg><span><small>Je veux…</small>' + esc(j.label) + '</span></p></div>' +
+    stage.innerHTML = '<div class="jv-bar"><a class="jv-back" href="#"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M11 6l-6 6 6 6"/></svg>Tous les thèmes</a>' +
+      '<p class="jv-sel">' + svgIco(j.icon) + '<span><small>Je veux…</small><b></b></span></p></div>' +
       '<div class="jv-flow" aria-live="polite"></div>';
     stage.setAttribute('data-j', j.id);
+  }
+  /* ce que l'usager veut, au point où il en est : le thème, puis le besoin dès qu'il l'a choisi */
+  function wish(j, path) {
+    var o = path.length ? j.q[j.start].options[path[0]] : null;
+    return o ? { label: o.label.replace(/^…/, ''), icon: o.icon } : { label: j.label, icon: j.icon };
+  }
+  function setSel(w, redraw) {                           // rappel à droite de la barre : pictogramme et libellé
+    var sel = $('.jv-sel', stage), ico = sel.querySelector('.jv-ico'), b = sel.querySelector('b');
+    if (b.textContent === w.label) return;
+    b.textContent = w.label;
+    if (ico.getAttribute('data-ico') !== w.icon) { ico.innerHTML = ICONS[w.icon] || ''; ico.setAttribute('data-ico', w.icon); if (redraw) draw(ico, { dur: 420, step: 60 }); }
   }
 
   /* ---------------------------------------------------------------- animations d'étape */
@@ -252,12 +258,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var go = function () { stage.hidden = true; stage.innerHTML = ''; };
       if (anim) stage.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(16px)' }], { duration: 260, easing: 'ease-in' }).onfinish = go; else go();
     }
-    grid.hidden = false; $('.jv-find').hidden = false;
-    if (fromId && anim) $$('.jv-grid > li:not([hidden])').forEach(function (li, i) {
+    $('.jv-find').hidden = false; other.hidden = false;
+    filter();                                             // thèmes, ou besoins trouvés si le champ est rempli
+    if (fromId && anim && !grid.hidden) $$('.jv-grid > li').forEach(function (li, i) {
       li.animate([{ opacity: 0, transform: 'perspective(800px) translateY(26px) rotateX(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 560, delay: 120 + i * 35, easing: EASE, fill: 'backwards' });
     });
     typeTo('…', true);
-    if (fromId) { var back = $('.jv-card[data-j="' + fromId + '"]'); if (back) { back.focus({ preventScroll: true }); back.scrollIntoView({ block: 'center', behavior: anim ? 'smooth' : 'auto' }); } }
+    if (fromId && !grid.hidden) { var back = $('.jv-card[data-j="' + fromId + '"]'); if (back) { back.focus({ preventScroll: true }); back.scrollIntoView({ block: 'center', behavior: anim ? 'smooth' : 'auto' }); } }
   }
   function render(next, first) {
     var prev = state; state = next;
@@ -266,15 +273,17 @@ document.addEventListener('DOMContentLoaded', function () {
     var opening = !prev || prev.id !== next.id;
     var forward = !opening && path.length > prev.path.length && prev.path.every(function (v, i) { return path[i] === v; });
     state.path = path;
-    document.title = 'Je veux ' + j.label + ' – CCBA';
+    var w0 = wish(j, path);
+    document.title = 'Je veux ' + w0.label + ' – CCBA';
     var card = $('.jv-card[data-j="' + j.id + '"]'), fromIcon = card && card.querySelector('.jv-ico');
     var cr = fromIcon ? fromIcon.getBoundingClientRect() : null, cardRect = cr && cr.width ? { left: cr.left + scrollX, top: cr.top + scrollY, width: cr.width } : null;
     if (opening) {
       shell(j);
-      typeTo(j.label, true);
-      grid.hidden = true; $('.jv-find').hidden = true;
+      grid.hidden = true; hits.hidden = true; other.hidden = true; $('.jv-find').hidden = true;
       stage.hidden = false;
     }
+    setSel(w0, !opening);
+    typeTo(w0.label, true);
     var flow = $('.jv-flow', stage), oldCount = $$('.jv-step', flow).length;
     flow.innerHTML = stepHTML(j, w, path);
     var steps = $$('.jv-step', flow), last = steps[steps.length - 1];
@@ -300,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* clics : ondulation sur la réponse choisie, puis étape suivante */
   root.addEventListener('pointerdown', function (e) {
-    var o = e.target.closest('.jv-opt, .jv-card[data-j]'); if (!o) return;
+    var o = e.target.closest('.jv-opt, .jv-card[data-j], .jv-hit'); if (!o) return;
     var r = o.getBoundingClientRect();
     o.style.setProperty('--px', (e.clientX - r.left) + 'px'); o.style.setProperty('--py', (e.clientY - r.top) + 'px');
   });
@@ -325,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* ---------------------------------------------------------------- départ */
   var init = parse();
-  if (init) { typed.textContent = J[init.id].label; caret.classList.add('is-rest'); render(init, true); }
+  if (init) { typed.textContent = wish(J[init.id], init.path).label; caret.classList.add('is-rest'); render(init, true); }
   else {
     if (anim) {
       $$('.jv-trait path').forEach(function (p, k) { p.animate([{ strokeDashoffset: 1, opacity: 0 }, { opacity: 1, offset: .06 }, { strokeDashoffset: 0, opacity: 1 }], { duration: k ? 520 : 1400, delay: k ? 1500 : 250, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'backwards' }); });

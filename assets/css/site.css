@@ -1284,8 +1284,6 @@ a.jv-card:hover::after, a.jv-card:focus-visible::after { transform: scaleX(1); }
 .jv-n { margin-top: auto; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
 .jv-n svg { width: 16px; height: 16px; fill: none; stroke: var(--peche); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
 a.jv-card:hover .jv-n svg { transform: translateX(5px); }
-.jv-card.is-more { background: var(--paper-2); border-style: dashed; border-color: var(--line-2); }
-.jv-more-l { margin-top: auto; display: flex; flex-direction: column; gap: 4px; font-size: 14.5px; font-weight: 700; }
 
 /* parcours */
 .jv-stage { margin: 4px 0 80px; }
@@ -1380,7 +1378,6 @@ html:not(.js) .jv-find { display: none; }
   .jv-card { display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 14px; row-gap: 4px; align-items: center; padding: 16px 18px; }
   .jv-card .jv-ico { grid-row: 1 / span 2; width: 40px; height: 40px; }
   .jv-card .jv-n { margin-top: 0; }
-  .jv-card.is-more .jv-more-l { grid-column: 2; }
 }
 
 /* ==========================================================================
@@ -1678,3 +1675,37 @@ p.rub-s { z-index: 0; pointer-events: none; }
   .em, .em * { animation: none !important; transition: none !important; }
   .orx.is-js::after, .orx-c, .orx-c > *, .orx-lede > * { transition: none !important; animation: none !important; }
 }
+
+
+/* ==========================================================================
+   v3.16 — « Je veux… » : quatre thèmes à l'entrée, le besoin se précise ensuite
+   ========================================================================== */
+.jv-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 4px 0 22px; }
+.jv-card { min-height: 0; gap: 12px; padding: 20px 20px 16px; }
+.jv-card .jv-ico { width: 44px; height: 44px; }
+.jv-n { justify-content: space-between; gap: 10px; padding-top: 4px; font-size: 13.5px; line-height: 1.35; }
+.jv-n svg { flex: none; }
+@media (max-width: 1040px) { .jv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .jv-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; } .jv-card .jv-ico { width: 40px; height: 40px; } }
+/* sous les thèmes : les autres façons de trouver, sur une ligne */
+.jv-else { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; margin: 0 0 72px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 14.5px; color: var(--muted); }
+.jv-else strong { color: var(--cassis); }
+.jv-else a { font-weight: 700; }
+/* besoins trouvés par la recherche : une liste courte, on y va directement */
+.jv-hits { list-style: none; margin: 0 0 22px; padding: 0; max-width: 760px; border-top: 1px solid var(--cassis); }
+.jv-hit { display: grid; grid-template-columns: 36px minmax(0, 1fr) 20px; align-items: center; column-gap: 16px; padding: 12px 4px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); transition: background-color .2s; }
+.jv-hit .jv-ico { grid-row: 1 / span 2; width: 36px; height: 36px; }
+.jv-hit-t { font: 700 18px/1.25 var(--f-title); color: var(--cassis); letter-spacing: -.01em; }
+.jv-hit-g { grid-column: 2; font-size: 13px; color: var(--muted); }
+.jv-hit-g::before { content: "Thème : "; }
+.jv-hit > svg:last-child { grid-column: 3; grid-row: 1 / span 2; width: 20px; height: 20px; fill: none; stroke: var(--peche); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
+.jv-hit:hover, .jv-hit:focus-visible { background: var(--surface); color: var(--ink); }
+.jv-hit:hover .jv-hit-t { color: var(--peche-d); }
+.jv-hit:hover > svg:last-child { transform: translateX(5px); }
+/* première question d'un thème : chaque besoin garde son pictogramme */
+.jv-opt.has-ico { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; column-gap: 14px; min-height: 78px; }
+.jv-opt svg.jv-ico { position: static; width: 40px; height: 40px; margin: 0; stroke: var(--cassis); stroke-width: 1.7; grid-row: 1 / span 2; transition: none; }
+.jv-opt:hover svg.jv-ico, .jv-opt:focus-visible svg.jv-ico { transform: none; }
+.jv-opt.has-ico .jv-opt-t { font-size: 17px; }
+.jv-sel b { font-weight: inherit; }
+@media (prefers-reduced-motion: reduce) { .jv-hit, .jv-hit > svg:last-child { transition: none; } }
