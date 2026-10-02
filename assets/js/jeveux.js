@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var node = li.querySelector('.jv-node');
     node.animate([{ transform: 'scale(.2)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 520, delay: delay, easing: BACK, fill: 'backwards' });
     var box = li.querySelector('.jv-qbox, .jv-res');
-    box.animate([{ opacity: 0, transform: 'perspective(900px) translateY(22px) rotateX(-10deg)' }, { opacity: 1, transform: 'none' }], { duration: 640, delay: delay + 60, easing: EASE, fill: 'backwards' });
+    box.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 640, delay: delay + 60, easing: EASE, fill: 'backwards' });
     $$('.jv-opt', li).forEach(function (o, i) {
       o.animate([{ opacity: 0, transform: 'translateX(-14px)' }, { opacity: 1, transform: 'none' }], { duration: 480, delay: delay + 180 + i * 70, easing: EASE, fill: 'backwards' });
     });
@@ -256,12 +256,12 @@ document.addEventListener('DOMContentLoaded', function () {
     document.title = TITLE;
     if (!stage.hidden) {
       var go = function () { stage.hidden = true; stage.innerHTML = ''; };
-      if (anim) stage.animate([{ opacity: 1 }, { opacity: 0, transform: 'translateY(16px)' }], { duration: 260, easing: 'ease-in' }).onfinish = go; else go();
+      if (anim) stage.animate([{ clipPath: 'polygon(-30% 0%, 140% 0%, 140% 100%, 0% 100%)' }, { clipPath: 'polygon(140% 0%, 140% 0%, 140% 100%, 170% 100%)' }], { duration: 380, easing: 'cubic-bezier(.6,0,.3,1)' }).onfinish = go; else go();   // sortie par la découpe à 45° du splash
     }
     $('.jv-find').hidden = false; other.hidden = false;
     filter();                                             // thèmes, ou besoins trouvés si le champ est rempli
     if (fromId && anim && !grid.hidden) $$('.jv-grid > li').forEach(function (li, i) {
-      li.animate([{ opacity: 0, transform: 'perspective(800px) translateY(26px) rotateX(-14deg)' }, { opacity: 1, transform: 'none' }], { duration: 560, delay: 120 + i * 35, easing: EASE, fill: 'backwards' });
+      li.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 560, delay: 120 + i * 35, easing: EASE, fill: 'backwards' });
     });
     typeTo('…', true);
     if (fromId && !grid.hidden) { var back = $('.jv-card[data-j="' + fromId + '"]'); if (back) { back.focus({ preventScroll: true }); back.scrollIntoView({ block: 'center', behavior: anim ? 'smooth' : 'auto' }); } }
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var steps = $$('.jv-step', flow), last = steps[steps.length - 1];
     if (opening) {
       if (anim) {
-        stage.animate([{ opacity: 0, transform: 'perspective(1200px) translateY(30px) rotateX(-6deg)' }, { opacity: 1, transform: 'none' }], { duration: 620, easing: EASE });
+        stage.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 620, easing: EASE });
         if (cardRect && !first) flyIcon(fromIcon, cardRect, $('.jv-sel .jv-ico', stage)); else draw($('.jv-sel .jv-ico', stage), { delay: 200 });
         steps.forEach(function (li, k) { if (li !== last) growSeg(li, 200 + k * 160); });
         enterStep(last, 260 + (steps.length - 1) * 160);
@@ -339,7 +339,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (anim) {
       $$('.jv-trait path').forEach(function (p, k) { p.animate([{ strokeDashoffset: 1, opacity: 0 }, { opacity: 1, offset: .06 }, { strokeDashoffset: 0, opacity: 1 }], { duration: k ? 520 : 1400, delay: k ? 1500 : 250, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'backwards' }); });
       $$('.jv-grid > li').forEach(function (li, i) {
-        li.animate([{ opacity: 0, transform: 'perspective(800px) translateY(34px) rotateX(-18deg)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: 300 + i * 55, easing: EASE, fill: 'backwards' });
+        li.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 700, delay: 300 + i * 55, easing: EASE, fill: 'backwards' });
         draw(li.querySelector('.jv-ico'), { delay: 520 + i * 55, dur: 700 });
       });
       typed.textContent = '';
