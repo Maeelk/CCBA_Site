@@ -91,7 +91,7 @@ La carte des 28 communes (accueil, page « Nos 28 communes », encart « Situer�
 Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui répond aux questions des usagers à partir du contenu du site. Emblème dessiné en code : la ligne de crête du territoire dans un disque (le motif de l’accueil — le film découpé par la crête et ses deux tracés — et de l’icône du site), sans visage. La crête se trace à l’arrivée ; les plans du relief glissent au survol ; les deux tracés respirent pendant qu’Aube cherche, puis le tracé blanc devient une onde qui file pendant qu’elle répond.
 
 ### Comment ça marche
-1. **Base de connaissances** (`kb.py` → `assets/data/kb.txt`, ≈ 334 Ko / 83 000 jetons) : régénérée à chaque mise en ligne. Elle contient l’arborescence, le texte de 148 pages de contenu, les horaires en clair, les 28 communes (population, maire, altitude, jours de collecte, guichet France Services le plus proche), les 64 réponses vérifiées de « Je veux… », les annonces de la bourse, les actualités et l’agenda récents.
+1. **Base de connaissances** (`kb.py` → `assets/data/kb.txt`, ≈ 140 Ko / 35 000 jetons, version condensée : ~450 caractères par page + coordonnées, horaires et tarifs conservés) : régénérée à chaque mise en ligne. Elle contient l’arborescence, le texte de 148 pages de contenu, les horaires en clair, les 28 communes (population, maire, altitude, jours de collecte, guichet France Services le plus proche), les 64 réponses vérifiées de « Je veux… », les annonces de la bourse, les actualités et l’agenda récents.
 2. **Worker Cloudflare** (`worker/`) : reçoit la question, ajoute la base de connaissances en prompt système, interroge un modèle Google Gemini et renvoie la réponse en flux. **La clé API n’est jamais dans le navigateur** : elle est un secret Cloudflare. Le Worker relit la base toutes les heures : le chatbot suit le site sans être redéployé.
 3. **Interface** (`assets/js/chatbot.js`) : bouton, panneau, réponse qui s’écrit au fil de l’eau, questions suggérées, conversation gardée le temps de l’onglet (rien n’est envoyé ailleurs, rien n’est enregistré).
 
@@ -108,7 +108,7 @@ Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui ré
 Le chatbot **n’apparaît que si le Worker est configuré** (`assets/data/bot.json`, champ `api`). Déploiement : voir `worker/README.md` — `npx wrangler login`, `npx wrangler secret put GEMINI_KEY`, `npx wrangler deploy`, puis coller l’adresse obtenue dans `assets/data/bot.json`.
 
 ### Limites assumées (c’est une maquette)
-- **Tout le site est envoyé à chaque question** (≈ 83 000 jetons). Simple et fiable, mais coûteux : en production, il faudrait n’envoyer que les pages utiles (la recherche du site sait déjà les trouver) ou utiliser le cache de contexte du fournisseur.
+- **Tout le site est envoyé à chaque question** (≈ 35 000 jetons). Simple et fiable, mais coûteux : en production, il faudrait n’envoyer que les pages utiles (la recherche du site sait déjà les trouver) ou utiliser le cache de contexte du fournisseur.
 - Limitation de débit approximative (comptée en mémoire, par isolat Cloudflare).
 - Aucune question n’est journalisée : impossible, en l’état, de savoir ce que les usagers demandent ni d’améliorer les réponses.
 - Une réponse fausse reste possible malgré les consignes. À évaluer sur un jeu de questions réelles avant toute mise en production, et à assortir d’une mention claire côté CCBA.

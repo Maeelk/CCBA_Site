@@ -49,7 +49,7 @@ t('préflight origine refusée', r.headers.get('access-control-allow-origin') ==
 r = await worker.fetch(post([{ role: 'user', text: 'France Services est ouvert ?' }]), env, ctx);
 const txt = await read(r);
 t('flux SSE', txt.includes('"d":"Le guichet "') && txt.includes('"done":true'), txt);
-t('repli de modèle', txt.includes('"model":"gemini-3-flash-lite"'), txt.slice(-120));
+t('repli de modèle', txt.includes('"model":"gemini-3.1-flash"'), txt.slice(-120));
 t('modèle inconnu essayé une fois', calls.filter(c => c.includes('gemini-3.1-flash-lite:')).length === 1);
 
 r = await worker.fetch(post([{ role: 'user', text: 'x' }], 'https://evil.test'), env, ctx);

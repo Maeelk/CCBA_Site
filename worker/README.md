@@ -58,7 +58,7 @@ regardez `/models` (avec une clé) et recopiez dans `MODEL` le nom exact que vou
 - **Chaque visiteur doit avoir un compte Google** pour obtenir sa clé Gemini. C’est le prix de ne
   rien faire payer ni gérer à la CCBA, mais ça exclut les usagers qui ne veulent ou ne peuvent pas
   en créer un — pensez à garder les parcours du site utilisables sans le chatbot.
-- **Coût et quota** : tout le contenu du site (~83 000 jetons) est envoyé à chaque question, sur
+- **Coût et quota** : tout le contenu du site (~35 000 jetons, base condensée) est envoyé à chaque question, sur
   le quota gratuit de la clé du visiteur. Simple et fiable, mais un visiteur qui pose beaucoup de
   questions peut atteindre la limite gratuite de sa propre clé.
 - **Limitation de débit approximative** : elle est comptée en mémoire, par isolat Cloudflare.

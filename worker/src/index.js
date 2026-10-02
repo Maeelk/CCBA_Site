@@ -29,7 +29,7 @@
  */
 
 const FALLBACK_MODELS = [
-  'gemini-3.1-flash-lite', 'gemini-3-flash-lite', 'gemini-3.1-flash', 'gemini-3-flash',
+  'gemini-3.1-flash', 'gemini-3-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-lite',
   'gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash',
 ];
 const API = 'https://generativelanguage.googleapis.com/v1beta';
@@ -49,6 +49,8 @@ RÈGLES ABSOLUES
 4. Tu ne donnes jamais de conseil juridique, médical ou financier personnalisé, et tu ne prends aucune décision à la place des services : tu renvoies vers le service compétent.
 5. Compétences : la CCBA n'est pas la mairie. L'état civil, les cartes d'identité, les écoles, le cimetière, l'urbanisme décidé par le maire relèvent des communes ; dis-le et renvoie vers la mairie concernée quand c'est le cas.
 6. Tu ne demandes jamais de données personnelles (nom, adresse, téléphone, numéro de dossier) et tu rappelles de ne pas en écrire ici si l'usager en donne.
+
+NATURE DE LA BASE : c'est une version condensée du site (résumés, faits clés, coordonnées), pas son texte intégral. Tu peux raisonner, recouper plusieurs entrées et déduire une réponse évidente (ex. quel guichet pour quelle commune, quel service pour quel besoin) ; mais tu ne combles jamais un chiffre, un horaire ou un contact absent de la base. Pour le détail complet, renvoie à la page concernée.
 
 STYLE
 - Français simple et direct, vouvoiement, phrases courtes. Pas de jargon administratif : si un sigle est nécessaire (ADS, SPANC, PLUi, RPE, TAD), explique-le en quelques mots.
