@@ -64,6 +64,7 @@
     panel.innerHTML =
       '<header class="cb-head">' + mark() +
         '<div><p class="cb-title" id="cb-title">Aube</p><p class="cb-sub">L’assistante du site</p></div>' +
+        '<button type="button" class="cb-x cb-new" title="Vider la conversation" aria-label="Vider la conversation et recommencer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>' +
         '<button type="button" class="cb-x" aria-label="Fermer l’assistante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</header>' +
       '<div class="cb-log" id="cb-log" role="log" aria-live="polite" aria-atomic="false" tabindex="0"></div>' +
@@ -76,7 +77,8 @@
     document.body.appendChild(panel);
     list = panel.querySelector('.cb-log'); form = panel.querySelector('.cb-form'); input = panel.querySelector('#cb-in');
     panel.querySelector('#cb-rekey').addEventListener('click', function () { clearApiKey(); askKey('Collez une nouvelle clé pour continuer.'); });
-    panel.querySelector('.cb-x').addEventListener('click', function () { toggle(false); });
+    panel.querySelector('.cb-x:not(.cb-new)').addEventListener('click', function () { toggle(false); });
+    panel.querySelector('.cb-new').addEventListener('click', resetChat);
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(120, input.scrollHeight) + 'px'; });
     input.addEventListener('keydown', function (e) {
@@ -317,6 +319,15 @@
       out.classList.remove('is-live');
       input.focus();
     });
+  }
+
+  /* Vide la conversation : arrête une réponse en cours, efface l'historique (mémoire d'onglet comprise) et repart d'un accueil neuf. */
+  function resetChat() {
+    if (controller) controller.abort();
+    hist = []; try { sessionStorage.removeItem(KEY); } catch (e) {}
+    list.innerHTML = '';
+    greet();
+    input.value = ''; input.style.height = 'auto'; input.focus();
   }
 
   /* ---------------------------------------------------------------- mémoire d'onglet */

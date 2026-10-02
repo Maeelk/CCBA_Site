@@ -1811,3 +1811,8 @@ p.rub-s { z-index: 0; pointer-events: none; }
   .crumbs li:last-child { display: none; }               /* la page courante est déjà le titre, juste dessous */
   .crumbs li:nth-last-child(2)::after { content: none; }
 }
+
+/* Aube : bouton « vider la conversation » */
+.cb-head .cb-new { margin-left: auto; }
+.cb-head .cb-new + .cb-x { margin-left: 0; }
+.cb-new svg { width: 18px; height: 18px; stroke-width: 1.8; }
