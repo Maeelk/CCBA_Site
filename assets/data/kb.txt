@@ -687,7 +687,6 @@ Page contact : contact/ — Plan du site : plan-du-site/ — Parcours guidés «
 
 ## PAGES DU SITE (texte publié)
 ### Services & démarches → services-demarches/
-Rubrique
 Services & démarches
 Déchets, assainissement, France Services, voirie, vie associative : toutes les démarches du quotidien assurées par la Communauté de communes.
 Assainissement non collectif
@@ -714,7 +713,6 @@ Routes intercommunales
 Découvrir
 
 ### Habitat, urbanisme & mobilité → habitat-urbanisme-mobilite/
-Rubrique
 Habitat, urbanisme & mobilité
 Se loger, rénover, construire, se déplacer : les aides, les documents d’urbanisme et les solutions de mobilité du bassin.
 Habitat & logement
@@ -743,7 +741,6 @@ Service ADS
 Découvrir
 
 ### Environnement & transition → environnement-transition/
-Rubrique
 Environnement & transition
 Préserver l’eau et les milieux naturels, réduire nos déchets, accélérer la transition énergétique du territoire.
 Eau & milieux naturels
@@ -763,7 +760,6 @@ Le Trophée Jeune&Co
 Découvrir
 
 ### Enfance, jeunesse & seniors → enfance-jeunesse-seniors/
-Rubrique
 Enfance, jeunesse & seniors
 Crèches, relais petite enfance, centres de loisirs, information jeunesse et accompagnement des seniors.
 Enfance & jeunesse
@@ -784,7 +780,6 @@ Semaine Bleue
 Découvrir
 
 ### Culture, sport & loisirs → culture-sport-loisirs/
-Rubrique
 Culture, sport & loisirs
 Médiathèque, théâtre, centre aquatique, randonnées et manifestations : profiter du Bassin d’Aubenas toute l’année.
 Culture
@@ -809,7 +804,6 @@ Ardèche Run
 Découvrir
 
 ### Économie & entreprises → economie-entreprises/
-Rubrique
 Économie & entreprises
 Créer, implanter et développer son activité : foncier, aides, accompagnement, numérique et tourisme professionnel.
 Agriculture & sylviculture
@@ -842,7 +836,6 @@ Aides aux hébergements touristiques
 Découvrir
 
 ### La CCBA & le territoire → la-ccba-et-le-territoire/
-Rubrique
 La CCBA & le territoire
 L’institution, ses élus, ses 28 communes, ses documents publics, son projet de territoire et ses offres d’emploi.
 Documents publics
@@ -2339,7 +2332,6 @@ Télécharger
 PDF
 
 ### Nos 28 communes → la-ccba-et-le-territoire/le-territoire/nos-28-communes/
-La CCBA & le territoire
 Nos 28 communes
 Mézilhac – 92 habitants
 Saint-Joseph-des-Bancs – 183 habitants
@@ -4747,7 +4739,6 @@ Dans un environnement en très forte mutation, la Communauté de Communes du Bas
 La Communauté de Communes du Bassin d’Aubenas souhaite promouvoir le territoire et les actions portées par elle et ses partenaires à l’appui de sa nouvelle identité visuelle et des supports qu’elle élabore. Elle organise et soutient de nombreux évènements culturels et sportifs sur tout le territoire.
 
 ### Nous contacter → contact/
-Contact
 Nous contacter
 Une question sur un service, une démarche, un projet ? Écrivez-nous ou venez nous rencontrer.
 Siège de la CCBA

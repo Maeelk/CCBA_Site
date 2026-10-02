@@ -1778,3 +1778,36 @@ p.rub-s { z-index: 0; pointer-events: none; }
   .news-item, .news-list li:first-child .news-item { grid-template-columns: 72px minmax(0, 1fr); gap: 14px; }
   .ni-title { font-size: 16px; -webkit-line-clamp: 3; }
 }
+
+
+/* ==========================================================================
+   v3.18 — en-têtes des pages intérieures : bas, pour que le contenu commence
+   dès l'ouverture (fil d'Ariane, titre, chapeau ; plus de surtitre)
+   ========================================================================== */
+.page-head-inner { grid-template-columns: minmax(0, 1fr) auto; gap: clamp(20px, 3vw, 40px); padding-top: clamp(14px, 1.8vw, 22px); padding-bottom: clamp(18px, 2.4vw, 30px); }
+.crumbs ol { margin-bottom: 10px; }
+.page-head h1 { font-size: clamp(28px, 3.3vw, 46px); line-height: 1.05; letter-spacing: -.035em; max-width: 22em; margin-bottom: 0; }
+.page-head h1.h-long { font-size: clamp(25px, 2.7vw, 38px); line-height: 1.08; letter-spacing: -.03em; }
+.page-head h1.h-xl { font-size: clamp(22px, 2.2vw, 31px); line-height: 1.12; letter-spacing: -.02em; max-width: 26em; }
+.page-head h1.h-caps { font-size: clamp(21px, 2.1vw, 30px); line-height: 1.12; letter-spacing: .005em; }
+.page-head .lead { margin-top: 10px; font-size: clamp(15.5px, 1.2vw, 17px); line-height: 1.5; max-width: 46em; }
+.page-head-text > :not(.crumbs):not(h1):not(.lead) { margin-top: 12px; }
+.head-map { width: auto; }                                 /* la carte en points reste un simple repère : elle ne fixe plus la hauteur */
+.head-map img { width: auto; height: clamp(60px, 5.6vw, 84px); }
+/* avec photo : une vignette panoramique à droite, plus un grand visuel */
+.has-photo .page-head-inner { grid-template-columns: minmax(0, 1fr) clamp(190px, 24vw, 320px); }
+.page-head-media .ph { aspect-ratio: 16 / 9; }
+.page-head + .section, .page-head + .container.section, .page-head + .layout.section, .page-head + .narrow.section, .page-head + .contact-grid.section { padding-top: clamp(28px, 3.4vw, 48px); }
+@media (max-width: 1024px) {
+  .page-head-inner { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+  .has-photo .page-head-inner { grid-template-columns: minmax(0, 1fr) clamp(140px, 30vw, 240px); }
+  .page-head-media { max-width: none; }
+}
+@media (max-width: 640px) {
+  .page-head-inner { grid-template-columns: minmax(0, 1fr); }
+  .has-photo .page-head-inner { grid-template-columns: minmax(0, 1fr); padding-bottom: 20px; }
+  .page-head-media .ph { aspect-ratio: 5 / 2; }
+  .head-map { display: none; }                           /* sur téléphone, la carte recouvrait le fil d'Ariane */
+  .crumbs li:last-child { display: none; }               /* la page courante est déjà le titre, juste dessous */
+  .crumbs li:nth-last-child(2)::after { content: none; }
+}
