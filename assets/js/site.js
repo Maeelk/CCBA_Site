@@ -763,27 +763,47 @@ var CCBAFind = (function () {
   select(0);
 })();
 
-/* Orientations : panneaux dépliants (un seul ouvert à la fois) */
+/* Orientations : frise d'emblèmes animés (accordéon sur petit écran), un seul texte affiché à la fois */
 (function () {
   var root = document.querySelector('[data-orx]');
   if (!root) return;
   var ps = Array.prototype.slice.call(root.querySelectorAll('.orx-p'));
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   root.classList.add('is-js');
-  function open(i, focus) {
+  /* (re)dessine l'emblème : on retire puis on remet la classe pour relancer le tracé */
+  function draw(p, delay) {
+    var em = p.querySelector('.em');
+    if (!em || still) return;
+    em.style.setProperty('--emd', (delay || 0) + 'ms');
+    em.classList.remove('is-draw'); void em.getBoundingClientRect(); em.classList.add('is-draw');
+  }
+  function open(i, focus, redraw) {
     ps.forEach(function (p, k) {
       var on = k === i; p.classList.toggle('is-open', on);
       p.querySelector('.orx-b').setAttribute('aria-expanded', String(on));
     });
+    root.style.setProperty('--orx-i', i);
+    if (redraw) draw(ps[i]);
     if (focus) ps[i].querySelector('.orx-b').focus();
   }
   ps.forEach(function (p, i) {
     var b = p.querySelector('.orx-b');
-    b.addEventListener('click', function () { open(i); });
+    b.addEventListener('click', function () { var was = p.classList.contains('is-open'); open(i, false, !was); });
     b.addEventListener('keydown', function (e) {
       var k = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
-      if (k) { e.preventDefault(); open((i + k + ps.length) % ps.length, true); }
+      if (k) { e.preventDefault(); open((i + k + ps.length) % ps.length, true, true); }
+      else if (e.key === 'Home') { e.preventDefault(); open(0, true, true); }
+      else if (e.key === 'End') { e.preventDefault(); open(ps.length - 1, true, true); }
     });
   });
+  /* première apparition : les sept emblèmes se dessinent l'un après l'autre */
+  if ('IntersectionObserver' in window && !still) {
+    var io = new IntersectionObserver(function (en) {
+      if (!en[0].isIntersecting) return;
+      io.disconnect(); ps.forEach(function (p, k) { draw(p, 150 + k * 110); });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+    io.observe(root);
+  }
 })();
 
 /* Territoire : fiche express de la commune survolée ou focalisée */

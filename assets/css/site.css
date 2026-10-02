@@ -329,27 +329,6 @@ main:focus { outline: none; }
 .past summary { cursor: pointer; font-weight: 700; color: var(--cassis); padding: 18px 0; }
 .past .ev-grid { margin-top: 18px; }
 
-/* ---------- Domaines d'action : index typographique ---------- */
-.rub-index { list-style: none; margin: 0; padding: 0; }
-.rub-index > li { border-bottom: 1px solid var(--line); }
-.rub { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1.25fr) minmax(0, 1fr) 52px; align-items: center; gap: 24px; padding: clamp(20px, 2.2vw, 30px) 0; text-decoration: none; color: var(--ink); }
-.rub::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--cassis); transform: scaleX(0); transform-origin: left; transition: transform .6s var(--ease); }
-.rub:hover::after, .rub:focus-within::after { transform: scaleX(1); }
-.rub-n { font: 700 13px/1 var(--f-body); color: var(--peche-d); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
-.rub-t { font: 700 clamp(24px, 3vw, 42px)/1.02 var(--f-title); color: var(--cassis); letter-spacing: -.035em; text-decoration: none; transition: transform .6s var(--ease), color .3s; }
-.rub-t::after { content: ""; position: absolute; inset: 0; z-index: 0; }
-.rub-s { list-style: none; margin: 0; padding: 0; position: relative; z-index: 1; line-height: 1.7; }
-.rub-s li { display: inline; }
-.rub-s li:not(:last-child)::after { content: "\00a0·"; color: var(--line-2); margin-right: 6px; }
-.rub-s a { color: var(--muted); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .2s, text-decoration-color .2s; }
-.rub-s a:hover, .rub-s a:focus-visible { color: var(--peche-d); text-decoration-color: currentColor; }
-.rub:has(.rub-t:hover) .rub-t, .rub-t:focus-visible { transform: translateX(12px); }
-.rub-s { font-size: 14.5px; color: var(--muted); line-height: 1.5; }
-.rub-go { width: 52px; height: 52px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center; color: var(--cassis); transition: background .35s, border-color .35s, color .35s; }
-.rub-go .ico { transition: transform .45s var(--ease); }
-.rub:has(.rub-t:hover) .rub-go { background: var(--peche); border-color: var(--peche); color: #fff; }
-.rub:has(.rub-t:hover) .rub-go .ico { transform: rotate(-45deg); }
-.rub-go { position: relative; z-index: 0; pointer-events: none; }
 
 /* ---------- France Services : état d'ouverture en direct ---------- */
 .fs-intro { max-width: 44em; color: var(--muted); margin: -24px 0 40px; }
@@ -715,9 +694,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .partners li:nth-child(odd) { border-left: 0; }
   .partners li:nth-child(odd) .partner { padding-left: 0; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
-  .rub { grid-template-columns: 56px minmax(0, 1fr) 48px; }
-  .rub-s { grid-column: 2; grid-row: 2; margin-top: -12px; }
-  .rub-go { grid-column: 3; grid-row: 1 / span 2; width: 46px; height: 46px; }
 }
 @media (max-width: 1024px) {
   :root { --hdr: 68px; }
@@ -797,9 +773,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .ev-row { grid-template-columns: 1fr; }
   .ev-row .ev-card { border-left: 0 !important; padding-left: 0; padding-top: 22px; border-top: 1px solid var(--line); }
   .ev-row .ev-card:first-child { border-top: 0; padding-top: 0; }
-  .rub { grid-template-columns: 34px minmax(0, 1fr) 40px; gap: 14px; }
-  .rub-go { width: 40px; height: 40px; }
-  .rub-s { font-size: 13.5px; }
   .partners { grid-template-columns: 1fr; }
   .partners li { border-left: 0 !important; }
   .partners li .partner { padding-left: 0; }
@@ -913,38 +886,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .hero-band .video-toggle, .hero-band .sun-cap { bottom: clamp(78px, 6.6vw, 104px); }
 .news-section { padding-top: clamp(72px, 8vw, 120px); }
 
-/* Orientations : panneaux dépliants */
-.orx { border-top: 1px solid var(--cassis); }
-.orx-h { margin: 0; font-size: inherit; }
-.orx-b { display: flex; align-items: baseline; gap: 14px; width: 100%; padding: 16px 0; background: none; border: 0; border-bottom: 1px solid var(--line); text-align: left; cursor: pointer; color: var(--ink); font: 700 18px/1.25 var(--f-title); }
-.orx-n { font: 700 12px var(--f-body); color: var(--peche-d); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
-.orx-c { padding: 8px 0 28px; }
-.orx-art { height: 110px; overflow: hidden; margin-bottom: 20px; }
-.orx-art svg { width: 100%; height: 100%; display: block; }
-.orx-k { font: 700 12px var(--f-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
-.orx-title { font: 700 clamp(24px, 2.4vw, 34px)/1.05 var(--f-title); color: var(--cassis); letter-spacing: -.035em; margin: 0 0 14px; }
-.orx-x { font-size: 16px; line-height: 1.7; margin: 0 0 20px; max-width: 40em; }
-@media (min-width: 1260px) {
-  .orx.is-js { display: flex; height: 560px; border-top: 1px solid var(--cassis); border-bottom: 1px solid var(--line); }
-  .orx.is-js .orx-p { position: relative; flex: 1 1 0; min-width: 0; overflow: hidden; border-left: 1px solid var(--line); transition: flex-grow .7s var(--ease), background .4s; }
-  .orx.is-js .orx-p:first-child { border-left: 0; }
-  .orx.is-js .orx-p.is-open { flex-grow: 7; background: var(--surface); }
-  .orx.is-js .orx-b { position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: flex-start; gap: 18px; padding: 24px 0; border: 0; z-index: 1; transition: background .3s; }
-  .orx.is-js .orx-p:not(.is-open) .orx-b:hover { background: var(--paper-2); }
-  .orx.is-js .orx-n { font-size: 13px; }
-  .orx.is-js .orx-t { writing-mode: vertical-rl; font-size: 17px; white-space: nowrap; color: var(--cassis); transition: opacity .3s; }
-  .orx.is-js .orx-p:not(.is-open) .orx-b:hover .orx-t { color: var(--peche-d); }
-  .orx.is-js .is-open .orx-b { width: 64px; right: auto; pointer-events: none; }
-  .orx.is-js .is-open .orx-t { opacity: 0; }
-  .orx.is-js .orx-c { position: absolute; top: 0; bottom: 0; left: 64px; width: min(620px, calc(100% - 96px)); padding: 26px 0 26px; opacity: 0; visibility: hidden; transition: opacity .35s, visibility .35s; }
-  .orx.is-js .is-open .orx-c { opacity: 1; visibility: visible; transition-delay: .35s; }
-  .orx.is-js .orx-art { height: 130px; }
-}
-@media (max-width: 1259px) {
-  .orx.is-js .orx-p:not(.is-open) .orx-c { display: none; }
-  .orx.is-js .orx-b::after { content: "+"; margin-left: auto; color: var(--peche); font: 400 22px/1 var(--f-body); }
-  .orx.is-js .is-open .orx-b::after { content: "–"; }
-}
 
 /* Territoire : chiffres + fiche express */
 .terr-figs { list-style: none; margin: 0 0 34px; padding: 0; display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 0; }
@@ -1045,7 +986,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .fs-page .fs-intro { margin-top: -12px; }
 .dock-a.is-open .dock-s::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #2E7D4F; box-shadow: 0 0 0 3px rgba(46,125,79,.15); }
 .dock-a.is-open .dock-s { color: #2E7D4F; }
-.or-section.band .orx.is-js .orx-p:not(.is-open) .orx-b:hover { background: var(--paper); }
 
 /* ---------- « Ma commune » ---------- */
 .hero-find { grid-template-rows: auto 1fr; }
@@ -1262,10 +1202,6 @@ html.js .relief.no-anim .lv, html.js .relief.no-anim .m-communes, html.js .relie
 }
 @keyframes dItem { from { opacity: 0; transform: perspective(800px) translateX(46px) rotateY(-34deg); } to { opacity: 1; transform: none; } }
 @keyframes mDrop { from { opacity: 0; transform: perspective(900px) rotateX(-28deg); } to { opacity: 1; transform: none; } }
-/* orientations : le contenu du panneau ouvert pivote en place */
-.orx.is-js .orx-p.is-open .orx-c > * { animation: orxIn .8s var(--ease-out) both; animation-delay: calc(.3s + var(--k, 0) * .06s); transform-origin: 0 50%; }
-.orx.is-js .orx-p.is-open .orx-c > :nth-child(2) { --k: 1; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(3) { --k: 2; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(4) { --k: 3; } .orx.is-js .orx-p.is-open .orx-c > :nth-child(5) { --k: 4; }
-@keyframes orxIn { from { opacity: 0; transform: perspective(900px) translateX(24px) rotateY(-24deg); } to { opacity: 1; transform: none; } }
 /* cartes et tuiles : inclinaison sous le pointeur, avec un plateau qui se soulève */
 .tilt { z-index: 0; transform-style: preserve-3d; }
 .tilt-surf { position: absolute; inset: -14px -16px; z-index: -1; border-radius: 14px; background: var(--surface); box-shadow: 0 34px 50px -30px rgba(37,26,33,.38), 0 0 0 1px rgba(217,204,191,.55); opacity: 0; transform: translateZ(-2px); transition: opacity .35s var(--ease); pointer-events: none; overflow: hidden; }
@@ -1595,3 +1531,150 @@ html.cb-ready [data-bot-open] { display: inline-block; }
 .jv-ask, .sr-ask, .p404-bot .link-arrow { border: 0; background: none; padding: 0; font: 700 inherit; color: var(--peche-d); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; text-align: left; }
 .jv-ask:hover, .sr-ask:hover { color: var(--cassis); }
 .p404-bot { margin-top: 14px; }
+
+
+/* ==========================================================================
+   v3.15 — pictogrammes au trait (pictos.py), index compact des domaines
+   d'action, frise des sept orientations
+   ========================================================================== */
+/* Pictogramme au trait : cassis, accent rouge pêche ; il se dessine quand son bloc apparaît */
+.pic { width: 38px; height: 38px; flex: none; fill: none; stroke: var(--cassis); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pic .a { stroke: var(--peche); }
+.pic path, .pic circle { stroke-dasharray: 1; stroke-dashoffset: 0; transition: stroke-dashoffset 1s var(--ease-out), opacity .2s; transition-delay: calc(var(--d, 0s) + .15s); }
+.js .reveal:not(.is-in) .pic path, .js .reveal:not(.is-in) .pic circle { stroke-dashoffset: 1; opacity: 0; }
+@keyframes picDraw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* ---------- Domaines d'action : index compact sur deux colonnes ---------- */
+.rub-section .sec-head { margin-bottom: clamp(10px, 1.4vw, 20px); }
+.rub-index { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(32px, 4.4vw, 72px); }
+.rub-index > li { border-bottom: 1px solid var(--line); }
+.rub { position: relative; display: grid; grid-template-columns: 38px minmax(0, 1fr); align-content: center; align-items: center; gap: 3px 18px; height: 100%; padding: 15px 0 16px; }
+.rub .pic { grid-row: 1 / span 2; }
+.rub::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--peche); transform: scaleX(0); transform-origin: left; transition: transform .6s var(--ease); pointer-events: none; }
+.rub:has(.rub-t:hover)::after, .rub:has(.rub-t:focus-visible)::after { transform: scaleX(1); }
+.rub-t { font: 700 clamp(19px, 1.6vw, 22px)/1.14 var(--f-title); letter-spacing: -.02em; color: var(--cassis); text-decoration: none; text-wrap: balance; transition: color .25s; }
+.rub-t::after { content: ""; position: absolute; inset: 0; z-index: 0; }          /* toute la ligne mène à la rubrique */
+.rub-t:hover { color: var(--peche-d); }
+.rub-t:focus-visible { outline: none; }
+.rub:has(.rub-t:focus-visible) { outline: 2px solid var(--peche); outline-offset: 2px; border-radius: 3px; }
+.rub:has(.rub-t:hover) .pic .a { animation: picDraw .7s var(--ease-out); }
+.rub-s { grid-column: 2; position: relative; z-index: 1; list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+/* une sous-rubrique ne se coupe pas en fin de ligne ; le point séparateur est placé avant chaque entrée,
+   dans une marge que la liste rogne : il n'apparaît donc jamais en début ni en fin de ligne */
+ul.rub-s { margin-left: -16px; clip-path: inset(-4px -4px -4px 10px); }
+.rub-s li { display: inline-block; position: relative; padding-left: 16px; }
+.rub-s li::before { content: ""; position: absolute; left: 6px; top: .68em; width: 3px; height: 3px; border-radius: 50%; background: var(--marron); }
+.rub-s a { color: var(--muted); text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px; transition: color .2s, text-decoration-color .2s; }
+.rub-s a:hover, .rub-s a:focus-visible { color: var(--peche-d); text-decoration-color: currentColor; }
+p.rub-s { z-index: 0; pointer-events: none; }
+@media (max-width: 700px) {      /* téléphone : une liste courte, les sous-rubriques restent dans le menu et sur la page de rubrique */
+  .rub-index { grid-template-columns: minmax(0, 1fr); }
+  .rub { grid-template-columns: 30px minmax(0, 1fr) 18px; column-gap: 14px; padding: 14px 0; }
+  .rub .pic { width: 30px; height: 30px; }
+  .rub-t { font-size: 18px; }
+  ul.rub-s { display: none; }
+  p.rub-s { font-size: 13.5px; }
+  .rub::before { content: ""; grid-column: 3; grid-row: 1 / span 2; justify-self: end; width: 8px; height: 8px; border-top: 2px solid var(--peche); border-right: 2px solid var(--peche); transform: rotate(45deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pic path, .pic circle { transition: none; animation: none !important; }
+}
+
+/* ---------- Emblèmes des orientations (pictos.py) ----------
+   Même trait que les pictogrammes. Deux temps : l'emblème se dessine (apparition de la frise,
+   choix d'une orientation), puis ses parties mobiles (m1, m2…) jouent deux fois ; au survol ou
+   au focus, elles jouent tant qu'on y reste. Rien ne tourne en continu sans action de l'usager. */
+.em { width: 48px; height: 48px; flex: none; fill: none; stroke: var(--cassis); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.em .a { stroke: var(--peche); }
+.em .f { fill: var(--peche); stroke: none; }
+.em [pathLength] { stroke-dasharray: 1; }
+.em .tr { stroke-dasharray: 2.4 4.6; stroke-width: 1.8; }
+.em g { transform-box: fill-box; transform-origin: 50% 50%; }
+.em.is-draw [pathLength] { animation: emDraw 1.15s var(--ease-out) var(--emd, 0ms) both; }
+.em.is-draw .a[pathLength] { animation-delay: calc(var(--emd, 0ms) + 320ms); }
+.em.is-draw .tr, .em.is-draw .f { animation: emFade .5s calc(var(--emd, 0ms) + 700ms) both; }
+@keyframes emDraw { from { stroke-dashoffset: 1; opacity: 0; } 10% { opacity: 1; } to { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes emFade { from { opacity: 0; } to { opacity: 1; } }
+
+.orx-b { --em-n: 2; --em-n2: 4; --em-w: 1.1s; }
+.orx-b:hover, .orx-b:focus-visible { --em-n: infinite; --em-n2: infinite; --em-w: 0s; }
+/* 1 · le bourg : la navette file le long de la route */
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-1 .m1 { animation: em1 3.2s cubic-bezier(.6, 0, .4, 1) var(--em-w) var(--em-n); }
+@keyframes em1 { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(42px); } }
+/* 2 · la feuille frémit, le soleil tourne */
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-2 .m1 { animation: em2s 3s linear var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-2 .m2 { transform-origin: 0% 100%; animation: em2l 3s ease-in-out var(--em-w) var(--em-n); }
+@keyframes em2s { to { transform: rotate(90deg); } }
+@keyframes em2l { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-3deg); } 70% { transform: rotate(2.5deg); } }
+/* 3 · les barres montent l'une après l'autre, la courbe rebondit */
+.em-3 .m1, .em-3 .m2, .em-3 .m3 { transform-origin: 50% 100%; }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-3 :is(.m1, .m2, .m3) { animation: em3 2.2s var(--ease) var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-3 .m2 { animation-delay: calc(var(--em-w) + .16s); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-3 .m3 { animation-delay: calc(var(--em-w) + .32s); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-3 .m4 { animation: em3a 2.2s var(--ease) calc(var(--em-w) + .5s) var(--em-n); }
+@keyframes em3 { 0%, 60%, 100% { transform: scaleY(1); } 22% { transform: scaleY(.62); } }
+@keyframes em3a { 0%, 60%, 100% { transform: translate(0, 0); } 25% { transform: translate(-1.5px, 3px); } }
+/* 4 · le soleil se lève, le sentier avance */
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-4 .m1 { animation: em4 3.2s ease-in-out var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-4 .tr { animation: em4t 1.6s linear var(--em-w) var(--em-n2); }
+@keyframes em4 { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes em4t { to { stroke-dashoffset: -14; } }
+/* 5 · l'eau ondule sous le livre */
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-5 .m1 { animation: em5 2.6s ease-in-out var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-5 .m2 { animation: em5 2.6s ease-in-out var(--em-w) var(--em-n) reverse; }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-5 .m3 { animation: em5b 2.6s ease-in-out var(--em-w) var(--em-n); }
+@keyframes em5 { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(3.5px); } 75% { transform: translateX(-3.5px); } }
+@keyframes em5b { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.8px); } }
+/* 6 · la balance cherche son équilibre */
+.em-6 .m1 { transform-origin: 50% 0%; }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-6 .m1 { animation: em6 3s ease-in-out var(--em-w) var(--em-n); }
+@keyframes em6 { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 62% { transform: rotate(4.5deg); } 84% { transform: rotate(-1.5deg); } }
+/* 7 · le porte-voix porte : les ondes partent l'une après l'autre */
+.em-7 .m3 { transform-origin: 0% 60%; }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-7 .m3 { animation: em7 1.8s var(--ease) var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-7 .m1 { animation: em7w 1.8s ease-out var(--em-w) var(--em-n); }
+:is(.orx-p.is-open, .orx-b:hover, .orx-b:focus-visible) .em-7 .m2 { animation: em7w 1.8s ease-out calc(var(--em-w) + .22s) var(--em-n); }
+@keyframes em7 { 0%, 45%, 100% { transform: rotate(0); } 18% { transform: rotate(-5deg); } }
+@keyframes em7w { 0% { opacity: .15; transform: translateX(-4px); } 35%, 100% { opacity: 1; transform: translateX(0); } }
+
+/* ---------- Orientations : frise de sept emblèmes, texte de l'orientation choisie dessous ---------- */
+.orx { border-top: 1px solid var(--cassis); }
+.orx-h { margin: 0; font-size: inherit; }
+.orx-b { display: flex; align-items: center; gap: 16px; width: 100%; padding: 13px 0; background: none; border: 0; border-bottom: 1px solid var(--line-2); text-align: left; cursor: pointer; color: var(--cassis); font: 700 18px/1.2 var(--f-title); letter-spacing: -.01em; }
+.orx-t { hyphens: auto; }
+.orx-c { display: flex; flex-direction: column; padding: 14px 0 26px; }
+.orx-title { display: none; font: 700 clamp(26px, 2.7vw, 38px)/1.04 var(--f-title); color: var(--cassis); letter-spacing: -.035em; margin: 0 0 18px; text-wrap: balance; }
+.orx-x { font-size: 16px; line-height: 1.68; margin: 0; max-width: 64ch; }
+.orx-lede { order: 2; margin-top: 16px; }
+/* petit écran : accordéon (un texte ouvert à la fois) */
+.orx.is-js .orx-p:not(.is-open) .orx-c { display: none; }
+.orx.is-js .orx-b::after { content: "+"; margin-left: auto; padding-left: 8px; color: var(--peche); font: 400 24px/1 var(--f-body); }
+.orx.is-js .is-open .orx-b::after { content: "–"; }
+.orx.is-js .is-open .orx-b { border-bottom-color: transparent; }
+.orx.is-js .is-open .orx-c { border-bottom: 1px solid var(--line-2); }
+/* écran large : la frise */
+@media (min-width: 900px) {
+  .orx.is-js { position: relative; display: grid; grid-template-columns: repeat(var(--orx-n, 7), minmax(0, 1fr)); grid-template-rows: auto auto; }
+  .orx.is-js .orx-p, .orx.is-js .orx-h { display: contents; }
+  .orx.is-js .orx-b { grid-row: 1; grid-column: var(--c); flex-direction: column; justify-content: flex-start; gap: 14px; padding: 28px 10px 24px; text-align: center; font-size: clamp(14.5px, 1.22vw, 17px); color: var(--muted); border-bottom: 1px solid var(--line-2); transition: color .25s, background-color .3s; }
+  .orx.is-js .orx-b::after, .orx.is-js .is-open .orx-b::after { content: none; }
+  .orx.is-js .orx-b .em { width: clamp(54px, 5.2vw, 70px); height: auto; aspect-ratio: 1; opacity: .78; transition: opacity .3s, transform .5s var(--ease-out); }
+  .orx.is-js .orx-b:hover, .orx.is-js .orx-b:focus-visible { color: var(--cassis); background: var(--paper); }
+  .orx.is-js .is-open .orx-b { color: var(--cassis); border-bottom-color: var(--line-2); }
+  .orx.is-js .orx-b:hover .em, .orx.is-js .orx-b:focus-visible .em, .orx.is-js .is-open .orx-b .em { opacity: 1; }
+  .orx.is-js .is-open .orx-b .em { transform: translateY(-3px); }
+  /* repère rouge pêche : il glisse sous l'orientation choisie */
+  .orx.is-js::after { content: ""; grid-row: 1; grid-column: 1; align-self: end; height: 3px; background: var(--peche); transform: translateX(calc(var(--orx-i, 0) * 100%)); transition: transform .6s var(--ease); pointer-events: none; }
+  /* les sept textes occupent la même case : la hauteur ne bouge pas quand on change d'orientation */
+  .orx.is-js .orx-c, .orx.is-js .orx-p:not(.is-open) .orx-c { grid-row: 2; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); column-gap: clamp(32px, 5vw, 84px); align-items: start; padding: clamp(28px, 3.2vw, 44px) 0 0; border: 0; visibility: hidden; opacity: 0; transition: opacity .25s, visibility .25s; }
+  .orx.is-js .is-open .orx-c { visibility: visible; opacity: 1; border: 0; transition: opacity .5s .15s, visibility 0s .15s; }
+  .orx.is-js .orx-title { display: block; }
+  .orx.is-js .orx-lede { order: 0; margin: 0; }
+  .orx.is-js .is-open .orx-title, .orx.is-js .is-open .orx-x { animation: orxIn .7s var(--ease-out) .12s both; }
+  .orx.is-js .is-open .orx-x { animation-delay: .2s; }
+}
+@keyframes orxIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .em, .em * { animation: none !important; transition: none !important; }
+  .orx.is-js::after, .orx-c, .orx-c > *, .orx-lede > * { transition: none !important; animation: none !important; }
+}
