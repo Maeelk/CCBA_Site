@@ -380,8 +380,6 @@ var CCBAFind = (function () {
       }, 220);
     }, { passive: true });
   } else { reveals.forEach(function (el) { el.classList.add('is-in'); }); window.CCBA_reveal = function (el) { el.classList.add('is-in'); }; }
-  /* découpe des images terminée : on retire le masque (il ne sert qu'à l'animation) */
-  document.addEventListener('animationend', function (e) { if (e.animationName === 'mWipe') e.target.classList.add('m-done'); });
 
   /* ---------- L'onde : un anneau rouge pêche part du point touché (le geste du splash : chaque impact fait une onde) ---------- */
   if (!reduce && document.body.animate) {
@@ -1525,7 +1523,7 @@ var CCBA3D = (function () {
       return { t: a.textContent, url: a.getAttribute('href'), d: t ? t.getAttribute('datetime') : '', x: x ? x.textContent : '', phEl: p };
     });
     var all = list.concat(old).sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : 0; }).slice(0, old.length);
-    var cls = function (a, c) { if (!a.phEl) return ''; var k = a.phEl.cloneNode(true); k.classList.remove('nf-ph', 'ni-media', 'm-done'); k.classList.add(c); return k.outerHTML; };
+    var cls = function (a, c) { if (!a.phEl) return ''; var k = a.phEl.cloneNode(true); k.classList.remove('nf-ph', 'ni-media'); k.classList.add(c); return k.outerHTML; };
     var nf = node(tFeature(Object.assign({}, all[0], { ph: cls(all[0], 'nf-ph') })));
     feat.parentNode.replaceChild(dress(nf), feat);
     ol.innerHTML = '';
