@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var EASE = 'cubic-bezier(.16,1,.3,1)', BACK = 'cubic-bezier(.34,1.56,.64,1)';
   var grid = $('.jv-grid'), stage = $('.jv-stage'), input = $('#jv-q'), count = $('#jv-count'), hits = $('.jv-hits'), other = $('.jv-else');
   var ICONS = DATA.icons, NEED = {}; DATA.needs.forEach(function (n) { NEED[n.id] = n; });
-  var svgIco = function (name) { return '<svg class="jv-ico" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + (ICONS[name] || '') + '</svg>'; };
+  var svgIco = function (name) { return '<svg class="pk jv-ico" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + (ICONS[name] || '') + '</svg>'; };
   var ARROW = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
   var TITLE = document.title;
   root.classList.add('is-live');
@@ -35,8 +35,8 @@ document.addEventListener('DOMContentLoaded', function () {
   function draw(svg, opt) {                              // chaque tracé du pictogramme se dessine à son tour
     opt = opt || {};
     if (!anim || !svg) return;
-    Array.prototype.forEach.call(svg.querySelectorAll('path, circle'), function (p, k) {
-      p.animate([{ strokeDashoffset: 1, opacity: 0 }, { opacity: 1, offset: .06 }, { strokeDashoffset: 0, opacity: 1 }],
+    Array.prototype.forEach.call(svg.querySelectorAll('.g [pathLength]'), function (p, k) {   // la plume écrit le dessin, pas le disque
+      p.animate([{ strokeDashoffset: 1.2, opacity: 0 }, { opacity: 1, offset: .06 }, { strokeDashoffset: 0, opacity: 1 }],
         { duration: opt.dur || 620, delay: (opt.delay || 0) + k * (opt.step || 90), easing: 'cubic-bezier(.65,0,.35,1)', fill: 'backwards' });
     });
   }
@@ -326,11 +326,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = e.target.closest('.jv-back, .jv-other');
     if (b) { e.preventDefault(); history.pushState(null, '', location.pathname + location.search); render(null); }
   });
-  /* survol d'une carte : son pictogramme se redessine */
-  if (anim && window.matchMedia('(hover: hover)').matches) $$('.jv-card[data-j]').forEach(function (a) {
-    var busy = false;
-    a.addEventListener('pointerenter', function () { if (busy) return; busy = true; draw(a.querySelector('.jv-ico'), { dur: 480, step: 70 }); setTimeout(function () { busy = false; }, 900); });
-  });
+  /* survol d'une carte : la boucle des pastilles (plume + ondes) est en CSS, voir « Pastilles » dans site.css */
 
   /* ---------------------------------------------------------------- départ */
   var init = parse();
