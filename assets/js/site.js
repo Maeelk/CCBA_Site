@@ -700,7 +700,7 @@ var CCBAFind = (function () {
     band.style.setProperty('--sun-x', (xs * 100).toFixed(2) + '%');
     band.style.setProperty('--sun-y', ((cy - lift) * 100).toFixed(2) + '%');
     band.classList.toggle('is-night', !day);
-    if (cap) { cap.hidden = false; cap.innerHTML = '<span class="sc-l">Soleil sur Aubenas · </span>lever ' + fmt(t.rise) + ' · coucher ' + fmt(t.set); }
+    if (cap) { cap.hidden = false; cap.innerHTML = '<span class="sc-l">Soleil la CCBA · </span>lever ' + fmt(t.rise) + ' · coucher ' + fmt(t.set); }
   }
   place(); setInterval(place, 60000);
 })();
