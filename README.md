@@ -110,9 +110,16 @@ La carte des 28 communes (accueil, page « Nos 28 communes », encart « Situer�
 
 Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui répond aux questions des usagers à partir du contenu du site. Emblème dessiné en code : la ligne de crête du territoire dans un disque (le motif de l’accueil — le film découpé par la crête et ses deux tracés — et de l’icône du site), sans visage. La crête se trace à l’arrivée ; les plans du relief glissent au survol ; les deux tracés respirent pendant qu’Aube cherche, puis le tracé blanc devient une onde qui file pendant qu’elle répond.
 
-### Comment ça marche
+### Le guide d’abord, l’IA sur demande (version 3.22)
+Pour **économiser les jetons**, la fenêtre d’Aube ne sollicite plus le modèle de langage par défaut :
+- **À l’ouverture, le guide** : Aube propose les quatre thèmes de « Je veux… » sous forme de choix à cliquer, puis les besoins, puis les questions du parcours ; en deux ou trois choix, elle affiche la fiche préparée par les services (l’essentiel, les étapes, le contact, les pages à consulter). Aucune IA, aucun appel extérieur, aucune clé : les parcours sont lus dans `assets/data/jeveux.json`, produit par `jeveux.py` à partir de `data/jeveux.json` — les mêmes contenus que la page « Je veux… ». « Étape précédente » et « Recommencer » sont proposés à chaque étape ; le parcours est retrouvé en changeant de page (mémoire de l’onglet).
+- **Sous les choix, un bouton « Poser ma question à Aube »** ouvre la discussion libre. C’est seulement là que la clé Gemini est demandée et que le modèle est appelé. Le parcours déjà suivi est joint à la première question (une ligne de contexte), pour une réponse plus courte et plus juste. « Revenir au guide » ramène aux choix ; la corbeille efface tout.
+- Les liens « Poser la question à Aube » du site (page « Je veux… », recherche sans résultat) ouvrent directement la discussion libre, puisque c’est ce qu’ils annoncent.
+- Coût : une question en discussion libre envoie toujours la base de connaissances (≈ 35 000 jetons) ; un parcours guidé n’en consomme aucun.
+
+### Comment ça marche (discussion libre)
 1. **Base de connaissances** (`kb.py` → `assets/data/kb.txt`, ≈ 140 Ko / 35 000 jetons, version condensée : ~450 caractères par page + coordonnées, horaires et tarifs conservés) : régénérée à chaque mise en ligne. Elle contient l’arborescence, le texte de 148 pages de contenu, les horaires en clair, les 28 communes (population, maire, altitude, jours de collecte, guichet France Services le plus proche), les 64 réponses vérifiées de « Je veux… », les annonces de la bourse, les actualités et l’agenda récents.
-2. **Worker Cloudflare** (`worker/`) : reçoit la question, ajoute la base de connaissances en prompt système, interroge un modèle Google Gemini et renvoie la réponse en flux. **La clé API n’est jamais dans le navigateur** : elle est un secret Cloudflare. Le Worker relit la base toutes les heures : le chatbot suit le site sans être redéployé.
+2. **Appel du modèle** : par défaut, le navigateur interroge directement Google Gemini avec **la clé du visiteur** (gratuite, demandée dans la fenêtre au moment d’ouvrir la discussion libre, gardée dans son navigateur). En option, un **Worker Cloudflare** (`worker/`) peut servir de relais : son adresse se règle dans `assets/data/bot.json`.
 3. **Interface** (`assets/js/chatbot.js`) : bouton, panneau, réponse qui s’écrit au fil de l’eau, questions suggérées, conversation gardée le temps de l’onglet (rien n’est envoyé ailleurs, rien n’est enregistré).
 
 ### Garde-fous
@@ -125,10 +132,10 @@ Un bouton en bas à droite de chaque page ouvre **Aube**, une assistante qui ré
 - Points d’entrée complémentaires : page « Je veux… », recherche sans résultat (la question est reprise) et page 404.
 
 ### Mise en service
-Le chatbot **n’apparaît que si le Worker est configuré** (`assets/data/bot.json`, champ `api`). Déploiement : voir `worker/README.md` — `npx wrangler login`, `npx wrangler secret put GEMINI_KEY`, `npx wrangler deploy`, puis coller l’adresse obtenue dans `assets/data/bot.json`.
+Aube est affichée sur toutes les pages, sans rien configurer : le guide fonctionne seul, la discussion libre avec la clé du visiteur. Le Worker est facultatif (voir `worker/README.md`).
 
 ### Limites assumées (c’est une maquette)
-- **Tout le site est envoyé à chaque question** (≈ 35 000 jetons). Simple et fiable, mais coûteux : en production, il faudrait n’envoyer que les pages utiles (la recherche du site sait déjà les trouver) ou utiliser le cache de contexte du fournisseur.
+- **La base de connaissances est envoyée à chaque question de la discussion libre** (≈ 35 000 jetons) — plus aucune en parcours guidé. Simple et fiable, mais coûteux : en production, il faudrait n’envoyer que les pages utiles (la recherche du site sait déjà les trouver) ou utiliser le cache de contexte du fournisseur.
 - Limitation de débit approximative (comptée en mémoire, par isolat Cloudflare).
 - Aucune question n’est journalisée : impossible, en l’état, de savoir ce que les usagers demandent ni d’améliorer les réponses.
 - Une réponse fausse reste possible malgré les consignes. À évaluer sur un jeu de questions réelles avant toute mise en production, et à assortir d’une mention claire côté CCBA.

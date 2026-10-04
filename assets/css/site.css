@@ -1873,3 +1873,49 @@ html.splash .dock-in > li { animation-play-state: paused; }
 .cms-lieu .ico { width: 19px; height: 19px; color: var(--peche); flex: none; }
 .cms-back { margin-top: 2.2em; }
 [data-cms-title] { min-height: 1.05em; }
+
+/* ==========================================================================
+   v3.22 — Aube : le guide d'abord (parcours « Je veux… », sans IA), la
+   discussion libre sur demande (bouton sous les choix). Voir chatbot.js.
+   ========================================================================== */
+.cb-panel.is-guide .cb-form, .cb-panel.is-guide .cb-legal-c, .cb-panel.is-guide .cb-bar, .cb-panel.is-chat .cb-legal-g { display: none; }
+.cb-panel { width: min(420px, calc(100vw - 32px)); max-height: min(680px, calc(100vh - 110px)); }
+.cb-legal-g { padding-top: 10px; border-top: 1px solid var(--line); }
+.cb-bar { padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.cb-toguide { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px 5px 4px; border: 0; border-radius: 999px; background: none; color: var(--cassis); font: 700 13px var(--f-body); cursor: pointer; }
+.cb-toguide:hover { background: var(--cassis-l); }
+.cb-toguide svg { width: 17px; height: 17px; fill: none; stroke: var(--peche); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cb-lead-q { font: 700 17px/1.2 var(--f-title); color: var(--cassis); }
+.cb-step { display: flex; flex-direction: column; gap: 10px; animation: rise .5s var(--ease-out) .08s backwards; }
+.cb-opts { display: flex; flex-direction: column; gap: 7px; }
+.cb-opt { display: grid; grid-template-columns: auto minmax(0, 1fr) 18px; align-items: center; column-gap: 12px; width: 100%; padding: 9px 12px 9px 10px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--surface); color: var(--ink); text-align: left; font: inherit; cursor: pointer; transition: border-color .2s, background-color .2s, transform .3s var(--ease-out); }
+.cb-opt-s { grid-template-columns: minmax(0, 1fr) 18px; padding-left: 14px; }
+.cb-opt:hover, .cb-opt:focus-visible { border-color: var(--cassis); background: var(--paper); }
+.cb-opt:focus-visible { outline: 2px solid var(--peche); outline-offset: 2px; }
+.cb-pk { width: 38px; height: 38px; }
+.cb-opt-l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cb-opt-t { font: 700 15px/1.25 var(--f-title); color: var(--cassis); }
+.cb-opt-h { font-size: 12.5px; line-height: 1.35; color: var(--muted); }
+.cb-go { width: 18px; height: 18px; fill: none; stroke: var(--peche); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .3s var(--ease-out); }
+.cb-opt:hover .cb-go, .cb-opt:focus-visible .cb-go { transform: translateX(3px); }
+.cb-nav { display: flex; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; color: var(--muted); }
+.cb-nav .cb-linklike { text-decoration: none; font-weight: 700; color: var(--cassis); }
+.cb-nav .cb-linklike:hover { text-decoration: underline; }
+/* le bouton qui ouvre la discussion libre : toujours sous les choix */
+.cb-free { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 4px; padding: 11px 14px; border: 1px dashed var(--marron); border-radius: 14px; background: none; color: var(--cassis); text-align: left; font: inherit; cursor: pointer; transition: border-color .2s, background-color .2s; }
+.cb-free:hover, .cb-free:focus-visible { border-style: solid; border-color: var(--cassis); background: var(--cassis-l); }
+.cb-free:focus-visible { outline: 2px solid var(--peche); outline-offset: 2px; }
+.cb-free > svg { flex: none; width: 24px; height: 24px; fill: none; stroke: var(--peche); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.cb-free > span { display: flex; flex-direction: column; gap: 1px; }
+.cb-free-t { font: 700 14.5px/1.25 var(--f-body); }
+.cb-free-h { font-size: 12px; color: var(--muted); }
+/* la fiche obtenue au bout du parcours */
+.cb-msg.cb-fiche { max-width: 100%; background: var(--surface); border: 1px solid var(--line-2); border-left: 3px solid var(--peche); border-radius: 12px; }
+.cb-fiche:focus { outline: none; }
+.cb-fiche-t { font: 700 17px/1.2 var(--f-title); color: var(--cassis); margin-bottom: .45em !important; }
+.cb-msg ol { margin: .2em 0 .5em; padding-left: 1.3em; }
+.cb-fiche li { margin: 4px 0; }
+.cb-fiche-c { font-weight: 700; color: var(--cassis); }
+.cb-fiche-l { margin-top: .6em !important; }
+@media (max-width: 640px) { .cb-panel { width: auto; } }
+@media (prefers-reduced-motion: reduce) { .cb-step { animation: none; } .cb-opt, .cb-go { transition: none; } }

@@ -1,14 +1,18 @@
 /* ==========================================================================
-   « Aube » — assistante du site (chatbot)
-   Emblème dessiné en SVG : la ligne de crête du territoire dans un disque. La
-   ligne ondule pendant qu'Aube cherche et devient une onde quand elle répond. Les réponses viennent d'un
-   modèle Gemini qui reçoit, en prompt système, le contenu du site (assets/data/kb.txt) —
-   directement depuis le navigateur, ou via le Worker Cloudflare (worker/src/index.js) si son
-   adresse est renseignée dans assets/data/bot.json.
-   Chaque visiteur apporte sa propre clé API Gemini (gratuite, aistudio.google.com/apikey) :
-   Aube la demande dans la fenêtre de discussion avant la première question. Elle est gardée
-   uniquement dans ce navigateur (localStorage) et envoyée au Worker dans l'en-tête X-Gemini-Key
-   à chaque question — jamais conservée par la CCBA. La conversation, elle, vit dans l'onglet.
+   « Aube » — assistante du site
+   Deux temps, pour ne solliciter le modèle de langage que lorsque c'est utile :
+   1. LE GUIDE (par défaut, aucune IA, aucun jeton) : la fenêtre reprend les parcours « Je veux… »
+      du site (assets/data/jeveux.json, produit par jeveux.py). L'usager choisit parmi des réponses
+      proposées ; en deux ou trois choix il obtient la fiche préparée par les services (l'essentiel,
+      le contact, les pages à consulter).
+   2. LE CHAT (sur demande) : sous les choix, un bouton « Poser ma question à Aube » ouvre la
+      discussion libre. Les réponses viennent alors d'un modèle Gemini qui reçoit, en prompt système,
+      le contenu du site (assets/data/kb.txt) — directement depuis le navigateur, ou via le Worker
+      Cloudflare (worker/src/index.js) si son adresse est renseignée dans assets/data/bot.json.
+      Chaque visiteur apporte sa propre clé API Gemini (gratuite, aistudio.google.com/apikey) :
+      Aube ne la demande qu'à ce moment-là. Elle reste dans ce navigateur (localStorage).
+   Le parcours suivi et la conversation vivent dans l'onglet (sessionStorage).
+   Emblème dessiné en SVG : la ligne de crête du territoire dans un disque.
    ========================================================================== */
 (function () {
   'use strict';
@@ -16,6 +20,7 @@
   var API = document.body.getAttribute('data-bot') || '';
   var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   var KEY = 'ccba-chat';
+  var STATE = 'ccba-aube';                             // mode (guide ou chat) et parcours suivi
   var KEY_LS = 'ccba-chat-key';
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   function getApiKey() { try { return localStorage.getItem(KEY_LS) || ''; } catch (e) { return ''; } }
@@ -44,10 +49,11 @@
   var btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'cb-btn'; btn.id = 'cb-btn';
   btn.setAttribute('aria-expanded', 'false'); btn.setAttribute('aria-controls', 'cb-panel');
-  btn.innerHTML = mark() + '<span class="cb-btn-l">Poser une question</span><span class="sr-only">Ouvrir l’assistante du site</span>';
+  btn.innerHTML = mark() + '<span class="cb-btn-l">Besoin d’aide&nbsp;?</span><span class="sr-only">Ouvrir l’assistante du site</span>';
   document.body.appendChild(btn);
 
   var panel = null, list = null, input = null, form = null, hist = [], busy = false, controller = null;
+  var mode = 'guide', G = { g: null, p: [] }, JV = null, jvLoad = null, chatCtx = '';
 
   var SUGGEST = [
     'Quel jour sont ramassées mes poubelles à Vesseaux\u00a0?',
@@ -64,21 +70,24 @@
     panel.innerHTML =
       '<header class="cb-head">' + mark() +
         '<div><p class="cb-title" id="cb-title">Aube</p><p class="cb-sub">L’assistante du site</p></div>' +
-        '<button type="button" class="cb-x cb-new" title="Vider la conversation" aria-label="Vider la conversation et recommencer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>' +
+        '<button type="button" class="cb-x cb-new" title="Tout recommencer" aria-label="Tout effacer et recommencer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"/></svg></button>' +
         '<button type="button" class="cb-x" aria-label="Fermer l’assistante"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
       '</header>' +
+      '<div class="cb-bar"><button type="button" class="cb-toguide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Revenir au guide</button></div>' +
       '<div class="cb-log" id="cb-log" role="log" aria-live="polite" aria-atomic="false" tabindex="0"></div>' +
       '<form class="cb-form">' +
         '<label class="sr-only" for="cb-in">Votre question</label>' +
         '<textarea id="cb-in" rows="1" placeholder="Votre question…" maxlength="1200" autocomplete="off"></textarea>' +
         '<button type="submit" class="cb-send" aria-label="Envoyer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h14M12 5l7 7-7 7"/></svg></button>' +
       '</form>' +
-      '<p class="cb-legal">Réponses générées automatiquement à partir des pages du site. Elles peuvent être incomplètes&nbsp;: en cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>. N’indiquez pas d’informations personnelles. Votre clé API Gemini reste dans ce navigateur — <button type="button" class="cb-linklike" id="cb-rekey">changer de clé</button>.</p>';
+      '<p class="cb-legal cb-legal-g">Parcours préparés à partir des pages du site, sans intelligence artificielle. En cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>.</p>' +
+      '<p class="cb-legal cb-legal-c">Réponses générées automatiquement à partir des pages du site. Elles peuvent être incomplètes&nbsp;: en cas de doute, <a href="' + ROOT + 'contact/">contactez la CCBA</a>. N’indiquez pas d’informations personnelles. Votre clé API Gemini reste dans ce navigateur — <button type="button" class="cb-linklike" id="cb-rekey">changer de clé</button>.</p>';
     document.body.appendChild(panel);
     list = panel.querySelector('.cb-log'); form = panel.querySelector('.cb-form'); input = panel.querySelector('#cb-in');
     panel.querySelector('#cb-rekey').addEventListener('click', function () { clearApiKey(); askKey('Collez une nouvelle clé pour continuer.'); });
     panel.querySelector('.cb-x:not(.cb-new)').addEventListener('click', function () { toggle(false); });
-    panel.querySelector('.cb-new').addEventListener('click', resetChat);
+    panel.querySelector('.cb-new').addEventListener('click', resetAll);
+    panel.querySelector('.cb-toguide').addEventListener('click', function () { showGuide(true); });
     form.addEventListener('submit', function (e) { e.preventDefault(); send(input.value); });
     input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(120, input.scrollHeight) + 'px'; });
     input.addEventListener('keydown', function (e) {
@@ -137,6 +146,144 @@
       chips.appendChild(b);
     });
     list.appendChild(chips); scroll();
+  }
+
+  /* ---------------------------------------------------------------- le guide (parcours « Je veux… », sans IA)
+     État : G.g = thème choisi, G.p = rang de chaque réponse donnée ensuite. Tout l'affichage s'en déduit,
+     ce qui permet de revenir en arrière et de retrouver son parcours en changeant de page. */
+  var TODAY = (function () { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+  var CHAT_ICO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H11l-5 4v-4H4z"/><path d="M8 9.5h8M8 12.5h5"/></svg>';
+  var ARROW = '<svg class="cb-go" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
+  var NEEDQ = 'Plus précisément, je veux…';
+  function loadGuide() {
+    if (!jvLoad) jvLoad = fetch(ROOT + 'assets/data/jeveux.json').then(function (r) { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then(function (d) { if (!d || !d.journeys || !d.journeys.length) throw new Error('vide'); JV = d; return d; });
+    return jvLoad;
+  }
+  function pk(name) { return JV.icons && JV.icons[name] ? '<svg class="pk cb-pk" viewBox="0 0 48 48" aria-hidden="true" focusable="false">' + JV.icons[name] + '</svg>' : ''; }
+  function theme() { return G.g ? JV.journeys.filter(function (j) { return j.id === G.g; })[0] || null : null; }
+  /* déroule le parcours : étapes déjà franchies, puis question en cours ou fiche obtenue */
+  function walk() {
+    var t = theme(), out = { t: t, done: [], q: null, r: null };
+    if (!t) { G = { g: null, p: [] }; return out; }
+    var qid = t.start;
+    for (var k = 0; k < G.p.length; k++) {
+      var q = t.q[qid], o = q && q.options[G.p[k]];
+      var r = o && o.go.indexOf('r:') === 0 ? t.r[o.go.slice(2)] : null;
+      if (!o || (o.go.indexOf('r:') === 0 && !r) || (!r && !t.q[o.go])) { G.p = G.p.slice(0, k); break; }   // parcours modifié depuis la dernière visite : on s'arrête là
+      out.done.push({ q: q, o: o });
+      if (r) { out.r = r; G.p = G.p.slice(0, k + 1); return out; }
+      qid = o.go;
+    }
+    out.q = t.q[qid];
+    return out;
+  }
+  function saveState() { try { sessionStorage.setItem(STATE, JSON.stringify({ m: mode, g: G.g, p: G.p, c: chatCtx })); } catch (e) {} }
+  function setMode(m) { mode = m; panel.classList.toggle('is-guide', m === 'guide'); panel.classList.toggle('is-chat', m === 'chat'); saveState(); }
+  function clean(label) { return String(label).replace(/^…\s*/, ''); }
+  function live(items) { return (items || []).filter(function (x) { return !(x && x.u && x.u < TODAY); }); }
+  function html(x) { return typeof x === 'string' ? x : x.h; }
+  function said(text) { return bubble('user', '<p>' + esc(text) + '</p>'); }
+  function ask(text) { return bubble('model', '<p>' + esc(text === NEEDQ ? 'Plus précisément, vous voulez…' : text) + '</p>'); }
+  function answer(o) { return /^…/.test(o.label) ? 'Je veux ' + clean(o.label) : o.label; }
+  function ficheHTML(r) {
+    var pts = live(r.points).map(function (x) { return '<li>' + html(x) + '</li>'; }).join('');
+    var steps = live(r.steps).map(function (x) { return '<li>' + html(x) + '</li>'; }).join('');
+    var links = live(r.links).map(function (l) {
+      return l.url ? '<a class="cb-src" href="' + esc(ROOT + l.url) + '">' + esc(l.label) + '</a>'
+                   : '<a class="cb-src" href="' + esc(l.href) + '" target="_blank" rel="noopener">' + esc(l.label) + '<span class="sr-only"> (nouvelle fenêtre)</span></a>';
+    }).join('');
+    return '<p class="cb-fiche-t">' + esc(r.title) + '</p>' + (r.lead ? '<p>' + esc(r.lead) + '</p>' : '') +
+      (pts ? '<ul>' + pts + '</ul>' : '') + (steps ? '<ol>' + steps + '</ol>' : '') +
+      (r.contact ? '<p class="cb-fiche-c">' + r.contact + '</p>' : '') + (links ? '<p class="cb-fiche-l">' + links + '</p>' : '');
+  }
+  function freeBtn(precise) {
+    return '<button type="button" class="cb-free">' + CHAT_ICO + '<span><span class="cb-free-t">' + (precise ? 'Une question plus précise ? Écrire à Aube' : 'Poser ma question à Aube') + '</span>' +
+      '<span class="cb-free-h">Discussion libre, réponses rédigées par une IA</span></span></button>';
+  }
+  /* le bloc d'étape : les choix, les retours, et — dessous — le bouton qui ouvre la discussion libre */
+  function stepBlock(w) {
+    var box = document.createElement('div'); box.className = 'cb-step';
+    var opt = function (attr, icon, label, hint) {
+      return '<button type="button" class="cb-opt' + (icon ? '' : ' cb-opt-s') + '" ' + attr + '>' + (icon ? pk(icon) : '') + '<span class="cb-opt-l"><span class="cb-opt-t">' + esc(label) + '</span>' +
+        (hint ? '<span class="cb-opt-h">' + esc(hint) + '</span>' : '') + '</span>' + ARROW + '</button>';
+    };
+    var opts = '';
+    if (!w.t) opts = JV.journeys.map(function (j) { return opt('data-theme="' + esc(j.id) + '"', j.icon, '…' + j.label, j.hint); }).join('');
+    else if (w.q) opts = w.q.options.map(function (o, i) { return opt('data-opt="' + i + '"', o.icon, o.label, o.hint); }).join('');
+    var nav = w.t ? '<p class="cb-nav"><button type="button" class="cb-linklike" data-back>‹ Étape précédente</button><button type="button" class="cb-linklike" data-restart>Recommencer</button></p>' : '';
+    box.innerHTML = (opts ? '<div class="cb-opts">' + opts + '</div>' : '') + nav + freeBtn(!!w.r);
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b.hasAttribute('data-theme')) choose(b.getAttribute('data-theme'), null);
+      else if (b.hasAttribute('data-opt')) choose(null, +b.getAttribute('data-opt'));
+      else if (b.hasAttribute('data-back')) { if (G.p.length) G.p.pop(); else G.g = null; saveState(); renderGuide(true); }
+      else if (b.hasAttribute('data-restart')) { G = { g: null, p: [] }; saveState(); renderGuide(true); }
+      else if (b.classList.contains('cb-free')) showChat(true);
+    });
+    return box;
+  }
+  /* affiche la question en cours (ou la fiche) et son bloc de choix ; place le haut de ce message en vue */
+  function current(focus) {
+    var w = walk(), msg;
+    if (!w.t) msg = list.querySelector('.cb-model');                       // l'accueil tient lieu de première question
+    else if (w.r) msg = bubble('model', ficheHTML(w.r), 'cb-fiche');
+    else msg = ask(w.q.text);
+    var box = stepBlock(w); list.appendChild(box);
+    if (msg) list.scrollTop = Math.max(0, msg.offsetTop - list.offsetTop - 10);
+    if (focus) {
+      var f = w.r ? msg : box.querySelector('.cb-opt');
+      if (f) { if (w.r) f.setAttribute('tabindex', '-1'); try { f.focus({ preventScroll: true }); } catch (e) {} }
+    }
+  }
+  function choose(themeId, idx) {
+    var old = list.querySelector('.cb-step'); if (old) old.remove();
+    if (themeId) { G = { g: themeId, p: [] }; said('Je veux ' + theme().label); }
+    else { var w = walk(); G.p.push(idx); said(answer(w.q.options[idx])); }
+    saveState(); current(true);
+  }
+  /* rejoue tout le parcours depuis son état (ouverture, retour en arrière, changement de page) */
+  function renderGuide(focus) {
+    list.innerHTML = '';
+    bubble('model', '<p>Bonjour ! Je suis Aube. Dites-moi ce que vous voulez faire : je vous guide en deux ou trois questions.</p><p class="cb-lead-q">Je veux…</p>');
+    var w = walk();
+    if (w.t) {
+      said('Je veux ' + w.t.label);
+      w.done.forEach(function (st) { ask(st.q.text); said(answer(st.o)); });
+    }
+    current(focus);
+  }
+  function showGuide(focus) {
+    if (controller) controller.abort();
+    setMode('guide');
+    list.innerHTML = '';
+    if (JV) { renderGuide(focus); return; }
+    var wait = bubble('model', '<p class="cb-dots" aria-label="Chargement"><span></span><span></span><span></span></p>');
+    loadGuide().then(function () { if (mode === 'guide') renderGuide(focus); }, function () {
+      if (mode !== 'guide') return;
+      wait.innerHTML = '<span class="sr-only">Aube : </span><p>Bonjour ! Je n’arrive pas à charger les parcours guidés. Vous pouvez ouvrir la page <a href="' + ROOT + 'je-veux/">Je veux…</a> ou me poser directement votre question.</p>';
+      var box = document.createElement('div'); box.className = 'cb-step'; box.innerHTML = freeBtn(false);
+      box.querySelector('button').addEventListener('click', function () { showChat(true); });
+      list.appendChild(box);
+    });
+  }
+  /* la discussion libre : c'est seulement ici que la clé est demandée et que le modèle est appelé */
+  function context() {
+    if (!JV || !G.g) return '';
+    var w = walk(); if (!w.t) return '';
+    var bits = ['Je veux ' + w.t.label].concat(w.done.map(function (st) { return clean(st.o.label); }));
+    return '(Contexte : sur le site, l’usager vient de suivre le parcours guidé « ' + bits.join(' › ') + ' »' + (w.r ? ' et a lu la fiche « ' + w.r.title + ' »' : '') + '.)';
+  }
+  function showChat(focus, keepCtx) {
+    if (!keepCtx) chatCtx = context().slice(0, 260);
+    setMode('chat');
+    list.innerHTML = '';
+    if (hist.length) {
+      hist.forEach(function (m) { bubble(m.role === 'model' ? 'model' : 'user', linkify(m.text)); });
+      var p = document.createElement('p'); p.className = 'cb-resume'; p.textContent = 'Conversation reprise';
+      list.insertBefore(p, list.firstChild);
+    } else greet();
+    if (focus && !list.querySelector('#cb-key')) setTimeout(function () { input.focus(); }, 0);
   }
 
   /* ---------------------------------------------------------------- clé API du visiteur */
@@ -247,7 +394,7 @@
       var today = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       var body = JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM(kb, today) }] },
-        contents: msgs.map(function (m) { return { role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text).slice(0, 1200) }] }; }),
+        contents: msgs.map(function (m) { return { role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text).slice(0, 1500) }] }; }),
         generationConfig: { temperature: 0.2, topP: 0.9, maxOutputTokens: 900 },
         safetySettings: ['HARM_CATEGORY_HARASSMENT', 'HARM_CATEGORY_HATE_SPEECH', 'HARM_CATEGORY_SEXUALLY_EXPLICIT', 'HARM_CATEGORY_DANGEROUS_CONTENT']
           .map(function (c) { return { category: c, threshold: 'BLOCK_ONLY_HIGH' }; }),
@@ -310,7 +457,9 @@
     var acc = '';
     controller = new AbortController();
     var onText = function (t) { if (!acc) { panel.classList.add('is-talk'); btn.classList.add('is-talk'); } acc += t; out.innerHTML = '<span class="sr-only">Aube : </span>' + linkify(acc); scroll(); };
-    (API ? viaWorker : direct)(hist.slice(-16), controller.signal, onText).then(function () {
+    var msgs = hist.slice(-16).map(function (m) { return { role: m.role, text: m.text }; });
+    if (chatCtx && msgs.length) msgs[0].text = chatCtx + '\n' + msgs[0].text;      // d'où vient l'usager : aide le modèle à répondre court et juste
+    (API ? viaWorker : direct)(msgs, controller.signal, onText).then(function () {
       if (!acc) throw new Error('Réponse vide.');
       hist.push({ role: 'model', text: acc });
       save();
@@ -335,26 +484,25 @@
     });
   }
 
-  /* Vide la conversation : arrête une réponse en cours, efface l'historique (mémoire d'onglet comprise) et repart d'un accueil neuf. */
-  function resetChat() {
+  /* Tout recommencer : arrête une réponse en cours, efface la conversation et le parcours, revient au guide. */
+  function resetAll() {
     if (controller) controller.abort();
-    hist = []; try { sessionStorage.removeItem(KEY); } catch (e) {}
-    list.innerHTML = '';
-    greet();
-    input.value = ''; input.style.height = 'auto'; input.focus();
+    hist = []; chatCtx = ''; G = { g: null, p: [] };
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    input.value = ''; input.style.height = 'auto';
+    showGuide(true);
   }
 
   /* ---------------------------------------------------------------- mémoire d'onglet */
   function save() { try { sessionStorage.setItem(KEY, JSON.stringify(hist.slice(-20))); } catch (e) {} }
   function restore() {
-    var raw = null; try { raw = sessionStorage.getItem(KEY); } catch (e) {}
-    var old = null; try { old = raw ? JSON.parse(raw) : null; } catch (e) {}
-    if (old && old.length) {
-      hist = old;
-      old.forEach(function (m) { bubble(m.role === 'model' ? 'model' : 'user', linkify(m.text)); });
-      var p = document.createElement('p'); p.className = 'cb-resume'; p.textContent = 'Conversation reprise';
-      list.insertBefore(p, list.firstChild);
-    } else greet();
+    var old = null, st = null;
+    try { old = JSON.parse(sessionStorage.getItem(KEY) || 'null'); } catch (e) {}
+    try { st = JSON.parse(sessionStorage.getItem(STATE) || 'null'); } catch (e) {}
+    if (old && old.length) hist = old;
+    if (st) { G = { g: st.g || null, p: Array.isArray(st.p) ? st.p.filter(function (n) { return n === +n; }) : [] }; chatCtx = st.c || ''; }
+    if (st && st.m === 'chat') { showChat(false, true); loadGuide().catch(function () {}); }
+    else showGuide(false);
   }
 
   /* ---------------------------------------------------------------- ouverture */
@@ -365,7 +513,7 @@
     btn.setAttribute('aria-expanded', String(open));
     btn.classList.toggle('is-open', open);
     document.documentElement.classList.toggle('cb-on', open);
-    if (open) { setTimeout(function () { input.focus(); scroll(); }, 60); }
+    if (open) { setTimeout(function () { if (mode === 'chat') { input.focus(); scroll(); } else { var f = panel.querySelector('.cb-opt'); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} } }, 60); }
     else { btn.focus(); if (controller) controller.abort(); }
   }
   btn.addEventListener('click', function () { toggle(); });
@@ -389,6 +537,7 @@
     var a = e.target.closest('[data-bot-open]');
     if (!a) return;
     e.preventDefault(); toggle(true);
+    if (mode !== 'chat') showChat(true);                // ces liens demandent explicitement la discussion libre
     var q = a.getAttribute('data-bot-open');
     if (q && input && !busy) { input.value = q; input.dispatchEvent(new Event('input')); }
   });
