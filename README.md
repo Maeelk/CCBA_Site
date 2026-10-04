@@ -74,7 +74,7 @@ GitHub Pages ne sert que des fichiers : il n’y a ni serveur ni base de donnée
 
 ## Pastilles : les pictogrammes dans le style du splash (version 3.21)
 
-Les pictogrammes de l’index « Nos domaines d’action », de la frise des sept orientations et de la page « Je veux… » forment une seule famille, dessinée en code dans `pictos.py` (aucune image) et calquée sur les pictogrammes de l’écran d’accueil :
+Les pictogrammes des accès rapides sous le film, de l’index « Nos domaines d’action », de la frise des sept orientations, de la page « Je veux… » et de la fenêtre d’Aube forment une seule famille, dessinée en code dans `pictos.py` (aucune image) et calquée sur les pictogrammes de l’écran d’accueil :
 
 - **Le dessin** : une pastille blanche cerclée de rouge pêche ; dedans, un tracé au trait épais à bouts ronds (la plume du logo), cassis avec une seule partie en rouge pêche. Grille unique de 48 × 48, le dessin occupe 65 % du diamètre comme sur le splash. Trois dessins (habiter, respirer, se cultiver) et l’emblème « Économie » sont repris tels quels du splash.
 - **Le mouvement** (bloc « Pastilles » de `site.css`, tout en CSS) : à l’apparition, le disque éclot et la plume écrit le dessin ; **au survol ou au focus, en boucle**, la plume retrace le dessin (une courte interruption du trait le parcourt, il ne disparaît jamais) et deux ondes partent du disque ; au repos, rien ne bouge. Animations réduites : dessin fixe.

@@ -1919,3 +1919,11 @@ html.splash .dock-in > li { animation-play-state: paused; }
 .cb-fiche-l { margin-top: .6em !important; }
 @media (max-width: 640px) { .cb-panel { width: auto; } }
 @media (prefers-reduced-motion: reduce) { .cb-step { animation: none; } .cb-opt, .cb-go { transition: none; } }
+
+/* accès rapides sous le film : les mêmes pastilles que le reste du site (pictos.py) ; elles s'écrivent à l'arrivée */
+.dock-pk { display: block; width: 46px; height: 46px; }
+.dock-in .pk .g [pathLength] { animation: pkDraw 1s var(--ease-out) .75s backwards; }
+.dock-in .pk .g .a { animation-delay: .95s; }
+.dock-in .pk .d { animation: pkPop .6s cubic-bezier(.34, 1.56, .64, 1) .55s backwards; }
+@media (max-width: 1100px) { .dock-pk { width: 40px; height: 40px; } }
+@media (max-width: 700px) { .dock-pk { width: 36px; height: 36px; } }
