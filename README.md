@@ -72,6 +72,14 @@ GitHub Pages ne sert que des fichiers : il n’y a ni serveur ni base de donnée
 - **Règles** : « Publié » décoché = brouillon, invisible ; une actualité datée dans le futur n’apparaît qu’à cette date (publication programmée) ; un rendez-vous disparaît de l’agenda le lendemain de sa fin. Le texte riche est nettoyé à l’affichage (balises et attributs autorisés seulement).
 - **Limites** : les actualités et rendez-vous historiques (repris de l’ancien site) ne sont pas modifiables dans le back-office ; les contenus saisis ne sont pas dans la recherche du site ni dans ses pages statiques (ils sont affichés par JavaScript) ; chaque rédacteur doit avoir un compte GitHub ; pas de circuit de validation.
 
+## Finitions sans alourdir (version 3.23)
+
+Un passage de finition, sans fonction nouvelle, avec un solde négatif en poids :
+- **Méga-menu** : chaque rubrique porte sa pastille (la même que dans « Nos domaines d’action »), en version allégée sans ondes ; elle s’écrit à l’ouverture du menu.
+- **Ménage** : 121 règles CSS qui ne visaient plus aucun élément (anciens accès rapides, rosace du projet de territoire, carrousel, ancien titre d’accueil…) et deux blocs de script sans cible sont retirés. `site.css` passe de 160 à 151 Ko, `site.js` de 109 à 107 Ko. Contrôle : 20 pages types capturées avant et après, en bureau et en mobile, sans différence visible.
+- **Corrections sur téléphone** : la page 404 et les pages contenant une adresse web très longue ne débordent plus de l’écran ; les tableaux à trois colonnes (jours de collecte) tiennent dans la largeur ; le menu « Ma commune » prend la largeur des champs voisins.
+- **Détails** : espace en trop dans « Voir la fiche d’Aubenas » ; l’icône de l’agenda vide reprend le style des pastilles.
+
 ## Pastilles : les pictogrammes dans le style du splash (version 3.21)
 
 Les pictogrammes des accès rapides sous le film, de l’index « Nos domaines d’action », de la frise des sept orientations, de la page « Je veux… » et de la fenêtre d’Aube forment une seule famille, dessinée en code dans `pictos.py` (aucune image) et calquée sur les pictogrammes de l’écran d’accueil :
