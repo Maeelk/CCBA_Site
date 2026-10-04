@@ -268,22 +268,46 @@ main:focus { outline: none; }
 .card-ico { color: var(--peche); margin-bottom: 10px; }
 
 /* ---------- Agenda ---------- */
-.ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 48px 40px; }
-.ev-row { grid-template-columns: repeat(4, 1fr); gap: 0; }
-.ev-card { position: relative; display: flex; flex-direction: column; gap: 18px; padding-top: 22px; border-top: 1px solid var(--line); }
-.ev-row .ev-card { border-top: 0; padding: 4px clamp(18px, 2.2vw, 32px) 8px; }
-.ev-row .ev-card + .ev-card { border-left: 1px solid var(--line); }
-.ev-row .ev-card:first-child { padding-left: 0; }
-.ev-date { display: flex; align-items: flex-end; gap: 12px; }
-.ev-day { font: 700 clamp(54px, 5.2vw, 76px)/.82 var(--f-title); color: var(--peche); letter-spacing: -.05em; font-variant-numeric: tabular-nums; }
-.ev-month { display: block; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; color: var(--cassis); }
-.ev-year { display: block; font-size: 12px; color: var(--muted); }
-.ev-date .ev-month, .ev-date .ev-year { line-height: 1.3; }
-.ev-date { display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; justify-content: start; column-gap: 12px; align-items: end; }
-.ev-day { grid-row: span 2; }
-.ev-card .card-meta { text-transform: none; letter-spacing: 0; font-size: 13.5px; color: var(--muted); font-weight: 400; margin-bottom: 8px; }
-.ev-card .card-title { font-size: 18px; }
-.ev-card .card-text { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 14.5px; }
+/* Agenda : tuile-date (feuillet de calendrier), fil du temps tracé derrière les tuiles, échéance, heure et lieu */
+.ev-grid { position: relative; display: grid; }
+.ev-card { position: relative; display: grid; grid-template-columns: 68px minmax(0, 1fr); gap: 0 22px; align-items: start; padding: 18px 0; }
+.ev-date { display: grid; justify-items: center; padding: 7px 4px 9px; background: var(--surface); border: 1px solid var(--line-2); border-top: 3px solid var(--peche); border-radius: 10px; text-align: center; line-height: 1.2; transition: transform .5s var(--ease-out), box-shadow .5s var(--ease-out); }
+.ev-dow, .ev-year, .ev-to { font-size: 11.5px; color: var(--muted); }
+.ev-day { font: 700 30px/1.05 var(--f-title); color: var(--cassis); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.ev-month { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--peche-d); }
+.ev-to { justify-self: stretch; margin: 6px 5px 0; padding-top: 4px; border-top: 1px dashed var(--line-2); font-size: 11px; font-weight: 700; letter-spacing: -.01em; color: var(--cassis); white-space: nowrap; }
+.ev-card.is-next .ev-date { background: var(--cassis); border-color: var(--cassis); border-top-color: var(--peche); }
+.is-next .ev-date span { color: #fff; }
+.is-next .ev-to { border-top-color: rgba(255, 255, 255, .4); }
+.ev-card:hover .ev-date { transform: translateY(-3px); box-shadow: 0 14px 20px -14px rgba(37, 26, 33, .45); }
+.ev-chip { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--peche-d); }
+.ev-chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.ev-chip.is-now { padding: 3px 11px 3px 9px; border-radius: 99px; background: var(--peche-d); color: #fff; }
+.ev-card .card-title { font-size: 18px; margin-bottom: 6px; }
+.ev-meta { display: flex; flex-wrap: wrap; gap: 3px 16px; margin: 0 0 8px; font-size: 13.5px; color: var(--muted); }
+.ev-m { display: inline-flex; align-items: center; gap: 6px; }
+.ev-m .ico { flex: none; width: 15px; height: 15px; color: var(--peche); }
+.ev-card .card-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0; font-size: 14.5px; }
+.ev-thumb { width: 172px; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 8px; background: var(--paper-2); }
+/* le fil : vertical derrière les tuiles (page Agenda, mobiles), horizontal à l'accueil sur grand écran */
+.ev-line, .ev-row { max-width: 940px; }
+.ev-line .ev-card { grid-template-columns: 68px minmax(0, 1fr) auto; }
+:is(.ev-line, .ev-row)::before { content: ""; position: absolute; left: 34px; top: 0; bottom: 0; width: 1px; background: var(--line-2); transform-origin: 0 0; transition: transform 1.6s var(--ease-out); }
+.js :is(.ev-line, .ev-row):not(:has(.is-in))::before { transform: scale(0); }
+@media (min-width: 1025px) {
+  .ev-row { max-width: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 clamp(24px, 2.6vw, 40px); }
+  .ev-row::before { left: 0; right: 0; top: 40px; bottom: auto; width: auto; height: 1px; }
+  .ev-row .ev-card { grid-template-columns: minmax(0, 1fr); grid-row: span 2; grid-template-rows: subgrid; gap: 18px; padding: 0; }   /* tuiles et textes alignés d'une carte à l'autre */
+  .ev-row .ev-date { width: 68px; }
+}
+@media (max-width: 640px) {
+  .ev-card { grid-template-columns: 58px minmax(0, 1fr); gap: 0 16px; padding: 14px 0; }
+  :is(.ev-line, .ev-row)::before { left: 29px; }
+  .ev-line .ev-card { grid-template-columns: 58px minmax(0, 1fr); }
+  .ev-day { font-size: 26px; }
+  .ev-to { margin-inline: 3px; font-size: 10px; }
+  .ev-thumb { display: none; }
+}
 .ev-card:hover .card-title a { background-size: 100% 1px; }
 .empty-msg { color: var(--muted); }
 
@@ -645,8 +669,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .utility-links { display: none; }
   .header-actions { margin-left: auto; }
   .nav-btn { font-size: 13.5px; max-width: 140px; }
-  .ev-row { grid-template-columns: repeat(2, 1fr); row-gap: 40px; }
-  .ev-row .ev-card:nth-child(odd) { border-left: 0; padding-left: 0; }
   .partners { grid-template-columns: repeat(2, 1fr); row-gap: 36px; }
   .partners li:nth-child(odd) { border-left: 0; }
   .partners li:nth-child(odd) .partner { padding-left: 0; }
@@ -709,9 +731,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 
   .news-item { grid-template-columns: 92px minmax(0, 1fr); gap: 16px; }
   .ni-title { font-size: 16.5px; }
-  .ev-row { grid-template-columns: 1fr; }
-  .ev-row .ev-card { border-left: 0 !important; padding-left: 0; padding-top: 22px; border-top: 1px solid var(--line); }
-  .ev-row .ev-card:first-child { border-top: 0; padding-top: 0; }
   .partners { grid-template-columns: 1fr; }
   .partners li { border-left: 0 !important; }
   .partners li .partner { padding-left: 0; }
@@ -846,8 +865,25 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 .ev-mh { margin: 0; font-size: clamp(22px, 2vw, 28px); letter-spacing: -.03em; position: sticky; top: calc(var(--hdr) + 20px); align-self: start; }
 .ev-mh { text-transform: none; }
 .ev-mc { display: block; margin-top: 6px; font: 700 12px var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
-.ev-mgroup .ev-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+/* rendez-vous passés : cartes compactes, tuile réduite au jour */
+.ev-mgroup .ev-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 32px; }
+.ev-mgroup .ev-card { grid-template-columns: 46px minmax(0, 1fr); gap: 0 14px; padding: 10px 0; }
+.ev-mgroup .ev-date { padding: 5px 2px 6px; border-top: 2px solid var(--marron); border-radius: 8px; }
+.ev-mgroup .ev-day { font-size: 20px; }
+.ev-mgroup :is(.ev-month, .ev-year, .ev-to) { display: none; }
+.ev-mgroup .card-title { font-size: 16px; margin-bottom: 4px; }
+.ev-mgroup .ev-meta { margin: 0; font-size: 13px; }
 @media (max-width: 800px) { .ev-mgroup { grid-template-columns: 1fr; gap: 16px; } .ev-mh { position: static; } }
+/* à venir : site.js range les rendez-vous par mois, intitulé à gauche comme pour les rendez-vous passés */
+.ev-line.is-months { max-width: none; }
+.ev-mh.ev-sep { position: static; padding: 18px 0 0; }
+@media (min-width: 801px) {
+  .ev-line.is-months { grid-template-columns: 200px minmax(0, 1fr); column-gap: 32px; }
+  .ev-line.is-months::before { left: 266px; }
+  .is-months .ev-sep { grid-column: 1; grid-row: span var(--n, 1); }
+  .is-months .ev-card { grid-column: 2; }
+}
+@media (max-width: 800px) { .ev-mh.ev-sep { position: relative; top: 0; padding: 22px 0 6px; background: var(--paper); } }
 
 /* Filtre des tableaux longs */
 .table-filter { margin: 1.6em 0 -0.6em; max-width: 420px; }
@@ -865,8 +901,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .dock-a { flex-direction: row; align-items: center; gap: 10px; padding: 14px 12px; }
   .dock-ico .ico { width: 22px; height: 22px; }
 }
-.ev-mgroup .ev-date .ev-month, .ev-mgroup .ev-date .ev-year { display: none; }
-.ev-mgroup .ev-day { font-size: clamp(44px, 4vw, 60px); }
 
 /* v3.5 — France Services déplacé sur sa page ; état en direct dans la barre d'accès */
 .page-head + .band { margin-top: 0; }
@@ -1705,11 +1739,10 @@ p.rub-s { z-index: 0; pointer-events: none; }
 .js .sec-head.is-in::before { transform: none; animation: mTrait 1.25s var(--ease-out) backwards; }
 .js .sec-head.is-in::after { transform: none; opacity: 0; animation: mTrait 1.25s var(--ease-out) backwards, mTip 1.5s linear backwards; }
 @keyframes mTip { from, 55% { opacity: 1; } to { opacity: 0; } }
-/* cartes et rendez-vous : leur filet supérieur se trace aussi */
-.js .hub-card.reveal, .js .ev-card.reveal { border-top-color: transparent; background-image: linear-gradient(var(--tc), var(--tc)); background-repeat: no-repeat; background-origin: border-box; background-size: 100% 1px; }
+/* cartes de rubrique : leur filet supérieur se trace aussi */
+.js .hub-card.reveal { border-top-color: transparent; background-image: linear-gradient(var(--tc), var(--tc)); background-repeat: no-repeat; background-origin: border-box; background-size: 100% 1px; }
 .js .hub-card.reveal { --tc: var(--cassis); }
-.js .ev-card.reveal { --tc: var(--line); }
-.js :is(.hub-card, .ev-card).reveal.is-in { animation: rise .9s var(--ease-out) var(--d, 0s) backwards, mLine 1.2s var(--ease-out) var(--d, 0s) backwards; }
+.js .hub-card.reveal.is-in { animation: rise .9s var(--ease-out) var(--d, 0s) backwards, mLine 1.2s var(--ease-out) var(--d, 0s) backwards; }
 
 /* 3. images : plus de découpe animée (elle ralentissait l'affichage) ; elles apparaissent avec leur bloc */
 
@@ -1725,9 +1758,9 @@ html.splash .hero-sun::before { animation-play-state: paused !important; }
   .js .sec-head::before { transform: none; }
   .js .sec-head::after, .hero-sun::before, .is-open .status-dot::after, .onde-clic { display: none; }
 }
-/* au survol d'une carte à filet (rubriques, rendez-vous) : le filet se retrace en rouge pêche sur le plateau */
-:is(.hub-card, .ev-card) > .tilt-surf::before { content: ""; position: absolute; left: 16px; right: 16px; top: 13px; height: 2px; background: var(--peche); transform: scaleX(0); transform-origin: 0 50%; transition: transform .7s var(--ease-out); }
-:is(.hub-card, .ev-card).is-tilt > .tilt-surf::before { transform: none; }
+/* au survol d'une carte de rubrique : le filet se retrace en rouge pêche sur le plateau */
+.hub-card > .tilt-surf::before { content: ""; position: absolute; left: 16px; right: 16px; top: 13px; height: 2px; background: var(--peche); transform: scaleX(0); transform-origin: 0 50%; transition: transform .7s var(--ease-out); }
+.hub-card.is-tilt > .tilt-surf::before { transform: none; }
 /* à l'ouverture de chaque page : un trait de lumière file le long du bas de l'en-tête */
 .page-head::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: linear-gradient(90deg, rgba(225, 66, 72, 0) calc(100% - 260px), var(--peche)); transform-origin: 0 50%; opacity: 0; pointer-events: none; animation: mTrait 1.3s var(--ease-out) .1s backwards, mTip 1.7s linear .1s backwards; }
 /* accueil : les accès rapides montent l'un après l'autre */

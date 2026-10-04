@@ -72,6 +72,14 @@ GitHub Pages ne sert que des fichiers : il n’y a ni serveur ni base de donnée
 - **Règles** : « Publié » décoché = brouillon, invisible ; une actualité datée dans le futur n’apparaît qu’à cette date (publication programmée) ; un rendez-vous disparaît de l’agenda le lendemain de sa fin. Le texte riche est nettoyé à l’affichage (balises et attributs autorisés seulement).
 - **Limites** : les actualités et rendez-vous historiques (repris de l’ancien site) ne sont pas modifiables dans le back-office ; les contenus saisis ne sont pas dans la recherche du site ni dans ses pages statiques (ils sont affichés par JavaScript) ; chaque rédacteur doit avoir un compte GitHub ; pas de circuit de validation.
 
+## Agenda en fil du temps (version 3.24)
+
+- **Tuile-date** (`ev_date_html()` dans `pages.py`, même gabarit dans `tEvent()` de `site.js` pour le back-office) : jour de la semaine, quantième, mois, année si ce n'est pas l'année en cours, et « → 24 » pour un rendez-vous de plusieurs jours.
+- **Carte** (`ev_card()`) : échéance remplie par `site.js` (« En cours », « Aujourd'hui », « Demain », « Dans N jours » jusqu'à un mois), titre, heure ou durée, lieu (back-office), résumé sur deux lignes, vignette sur la page Agenda. Le prochain rendez-vous (`.is-next`) a une tuile pleine.
+- **Fil** : un trait relie les tuiles — vertical sur la page Agenda et sur mobile, horizontal à l'accueil sur grand écran ; il se trace à l'apparition des cartes.
+- **Page Agenda** : les rendez-vous à venir sont rangés par mois (`evDeco()` insère les intitulés `.ev-sep`, rejoué après un ajout du back-office via `window.CCBA_agenda`) ; les rendez-vous passés sont des cartes compactes (`compact=True`).
+- Sans JavaScript : la liste reste lisible, sans échéance ni intitulés de mois.
+
 ## Finitions sans alourdir (version 3.23)
 
 Un passage de finition, sans fonction nouvelle, avec un solde négatif en poids :

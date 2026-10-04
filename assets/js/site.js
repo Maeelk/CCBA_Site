@@ -529,6 +529,34 @@ var CCBAFind = (function () {
   /* ---------- Agenda : masquer les événements passés (site statique) ---------- */
   var today = new Date(); today.setHours(0, 0, 0, 0);
   var iso = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+  /* échéance (« Aujourd'hui », « Dans 5 jours »…) et mise en avant du prochain rendez-vous ; rejoué après un ajout du back-office */
+  function evDeco(grid) {
+    var first = true;
+    $$('.ev-card', grid).forEach(function (c) {
+      var next = first && !c.hidden; if (next) first = false;
+      c.classList.toggle('is-next', next);
+      var chip = c.querySelector('[data-ev-chip]'); if (!chip || c.hidden) return;
+      var n = Math.round((new Date(c.getAttribute('data-start') + 'T00:00') - today) / 864e5);
+      var t = n < 0 ? 'En cours' : n === 0 ? 'Aujourd’hui' : n === 1 ? 'Demain' : n <= 31 ? 'Dans ' + n + ' jours' : '';
+      chip.textContent = t; chip.hidden = !t; chip.classList.toggle('is-now', n <= 0);
+    });
+    if (!grid.classList.contains('ev-line')) return;
+    $$('.ev-sep', grid).forEach(function (h) { h.remove(); });      // page Agenda : un intitulé par mois, dans la marge
+    var cur = '', head, k;
+    $$('.ev-card', grid).forEach(function (c) {
+      if (c.hidden) return;
+      var s = c.getAttribute('data-start'), m = (s < iso ? iso : s).slice(0, 7);
+      if (m !== cur) {
+        cur = m; k = 0; head = document.createElement('h3'); head.className = 'ev-mh ev-sep';
+        var lab = new Date(m + '-01T12:00').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+        head.innerHTML = lab.charAt(0).toUpperCase() + lab.slice(1) + '<span class="ev-mc"></span>';
+        grid.insertBefore(head, c);
+      }
+      head.style.setProperty('--n', ++k); head.lastChild.textContent = k + ' rendez-vous';
+    });
+    grid.classList.add('is-months');
+  }
+  window.CCBA_agenda = evDeco;
   $$('[data-upcoming]').forEach(function (grid) {
     var lim = parseInt(grid.getAttribute('data-limit') || '0', 10), shown = 0;
     $$('.ev-card', grid).forEach(function (c) {
@@ -537,6 +565,7 @@ var CCBAFind = (function () {
     });
     var empty = grid.parentElement.querySelector('[data-empty]');
     if (!shown && empty) { empty.hidden = false; grid.hidden = true; }
+    evDeco(grid);
   });
 
   /* ---------- Formulaire de contact (mailto, site statique) ---------- */
@@ -1454,12 +1483,17 @@ var CCBA3D = (function () {
     return '<article class="card news-card reveal">' + ph(a.img, 'card-media') + '<div class="card-body">' + meta(a.d) +
       '<h3 class="card-title"><a href="' + esc(a.url) + '">' + esc(a.t) + '</a></h3>' + (a.x ? '<p class="card-text">' + esc(a.x) + '</p>' : '') + '</div></article>';
   }
-  function tEvent(e) {
-    var m = MOIS[+e.s.slice(5, 7) - 1];
-    return '<article class="ev-card reveal" data-end="' + e.e + '" data-start="' + e.s + '"><div class="ev-date" aria-hidden="true"><span class="ev-day">' + (+e.s.slice(8, 10)) + '</span>' +
-      '<span class="ev-month">' + m.slice(0, 4) + (m.length > 4 ? '.' : '') + '</span><span class="ev-year">' + e.s.slice(0, 4) + '</span></div>' +
-      '<div class="ev-body"><p class="card-meta">' + esc(when(e)) + (e.lieu ? ' · ' + esc(e.lieu) : '') + '</p><h3 class="card-title"><a href="' + esc(e.url) + '">' + esc(e.t) + '</a></h3>' +
-      (e.x ? '<p class="card-text">' + esc(e.x) + '</p>' : '') + '</div></article>';
+  var IC = { clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>', pin: '<path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>' };
+  var MABR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'], DOW = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+  function evM(i, t) { return '<span class="ev-m"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + IC[i] + '</svg>' + esc(t) + '</span>'; }
+  function tEvent(e, thumb) {                                      // même gabarit que ev_card() du générateur
+    var d = new Date(e.s + 'T12:00'), f = new Date(e.e + 'T12:00'), multi = e.s !== e.e;
+    return '<article class="ev-card reveal" data-start="' + e.s + '" data-end="' + e.e + '"><div class="ev-date" aria-hidden="true"><span class="ev-dow">' + DOW[d.getDay()] + '</span><span class="ev-day">' + d.getDate() + '</span>' +
+      '<span class="ev-month">' + MABR[d.getMonth()] + '</span>' + (d.getFullYear() !== new Date().getFullYear() ? '<span class="ev-year">' + d.getFullYear() + '</span>' : '') +
+      (multi ? '<span class="ev-to">→ ' + f.getDate() + (e.s.slice(0, 7) === e.e.slice(0, 7) ? '' : ' ' + MABR[f.getMonth()]) + '</span>' : '') + '</div>' +
+      '<div class="ev-body"><p class="ev-chip" data-ev-chip hidden></p><h3 class="card-title"><a href="' + esc(e.url) + '">' + esc(e.t) + '</a></h3>' +
+      '<p class="ev-meta"><span class="sr-only">' + esc(when(e)) + '. </span>' + (multi ? evM('calendar', 'Jusqu’au ' + f.getDate() + ' ' + MOIS[f.getMonth()]) : e.h ? evM('clock', (+e.h.slice(0, 2)) + 'h' + (e.h.slice(3) === '00' ? '' : e.h.slice(3))) : '') + (e.lieu ? evM('pin', e.lieu) : '') + '</p>' +
+      (e.x ? '<p class="card-text">' + esc(e.x) + '</p>' : '') + '</div>' + (thumb && e.img ? '<img class="ev-thumb" src="' + esc(e.img) + '" alt="" loading="lazy" decoding="async">' : '') + '</article>';
   }
   function node(html) { var t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
   function dress(el) {                                             // même habillage que les cartes d'origine : apparition au défilement, halo au survol
@@ -1507,12 +1541,13 @@ var CCBA3D = (function () {
     up.forEach(function (e) {
       var cards = Array.prototype.slice.call(grid.querySelectorAll('.ev-card')), before = null;
       for (var i = 0; i < cards.length; i++) { var s = cards[i].getAttribute('data-start') || cards[i].getAttribute('data-end'); if (s > e.s) { before = cards[i]; break; } }
-      grid.insertBefore(dress(node(tEvent(e))), before);
+      grid.insertBefore(dress(node(tEvent(e, grid.classList.contains('ev-line')))), before);
     });
     var shown = 0;
     Array.prototype.forEach.call(grid.querySelectorAll('.ev-card'), function (c) { var ok = c.getAttribute('data-end') >= TODAY && (!lim || shown < lim); c.hidden = !ok; if (ok) shown++; });
     grid.hidden = false;
     Array.prototype.forEach.call(grid.parentElement.querySelectorAll('[data-empty]'), function (m) { m.hidden = true; });
+    if (window.CCBA_agenda) window.CCBA_agenda(grid);
   }
   /* --- page de lecture --- */
   function title(text) {
