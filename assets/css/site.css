@@ -392,8 +392,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
 /* ---------- En-tête des pages intérieures ---------- */
 .page-head { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); isolation: isolate; }
 .page-head::before { -webkit-mask-image: linear-gradient(90deg, transparent 10%, #000 70%); mask-image: linear-gradient(90deg, transparent 10%, #000 70%); }
-.head-map { margin: 0; justify-self: end; width: clamp(120px, 15vw, 190px); animation: rise 1.1s var(--ease-out) .15s both; }
-.head-map img { width: 100%; height: auto; }
 .page-head-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) clamp(140px, 22vw, 300px); gap: 48px; align-items: center; padding-top: clamp(26px, 3.4vw, 44px); padding-bottom: clamp(52px, 6.4vw, 96px); }
 .has-photo .page-head-inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
 .page-head h1 { font-size: clamp(38px, 5.6vw, 84px); line-height: .98; letter-spacing: -.045em; max-width: 15em; margin-bottom: 22px; }
@@ -744,7 +742,6 @@ select:focus, input:focus, textarea:focus { outline: none; border-color: var(--c
   .mini-stats > div { padding: 14px 10px 0; }
   .fig-src { text-align: left; }
   .page-head-inner { grid-template-columns: 1fr; }
-  .head-map { position: absolute; right: var(--gut); top: 14px; width: 64px; opacity: .55; }
   .has-photo .page-head-inner { padding-bottom: 48px; }
   .status { flex-wrap: wrap; row-gap: 2px; border-radius: 16px; padding: 10px 16px 10px 14px; }
   .status-h { flex-basis: 100%; padding-left: 19px; font-size: 13px; }
@@ -1670,7 +1667,7 @@ p.rub-s { z-index: 0; pointer-events: none; }
    v3.18 — en-têtes des pages intérieures : bas, pour que le contenu commence
    dès l'ouverture (fil d'Ariane, titre, chapeau ; plus de surtitre)
    ========================================================================== */
-.page-head-inner { grid-template-columns: minmax(0, 1fr) auto; gap: clamp(20px, 3vw, 40px); padding-top: clamp(14px, 1.8vw, 22px); padding-bottom: clamp(18px, 2.4vw, 30px); }
+.page-head-inner { --pt: clamp(14px, 1.8vw, 22px); --pb: clamp(18px, 2.4vw, 30px); grid-template-columns: minmax(0, 1fr) auto; gap: clamp(20px, 3vw, 40px); padding-top: var(--pt); padding-bottom: var(--pb); }
 .crumbs ol { margin-bottom: 10px; }
 .page-head h1 { font-size: clamp(28px, 3.3vw, 46px); line-height: 1.05; letter-spacing: -.035em; max-width: 22em; margin-bottom: 0; }
 .page-head h1.h-long { font-size: clamp(25px, 2.7vw, 38px); line-height: 1.08; letter-spacing: -.03em; }
@@ -1678,8 +1675,10 @@ p.rub-s { z-index: 0; pointer-events: none; }
 .page-head h1.h-caps { font-size: clamp(21px, 2.1vw, 30px); line-height: 1.12; letter-spacing: .005em; }
 .page-head .lead { margin-top: 10px; font-size: clamp(15.5px, 1.2vw, 17px); line-height: 1.5; max-width: 46em; }
 .page-head-text > :not(.crumbs):not(h1):not(.lead) { margin-top: 12px; }
-.head-map { width: auto; }                                 /* la carte en points reste un simple repère : elle ne fixe plus la hauteur */
-.head-map img { width: auto; height: clamp(60px, 5.6vw, 84px); }
+/* le territoire en relief, vu de l'est (terrain.strip_svg) : une bande large et basse, posée sur le filet du bandeau ;
+   elle prend toute la hauteur disponible sans jamais la fixer */
+.head-map { position: relative; align-self: stretch; margin: 0; width: clamp(190px, 24vw, 350px); animation: rise 1.1s var(--ease-out) .15s both; }
+.head-map img { position: absolute; left: 0; top: calc(12px - var(--pt)); width: 100%; height: calc(100% + var(--pt) + var(--pb) - 12px); object-fit: contain; object-position: 100% 100%; }
 /* avec photo : une vignette panoramique à droite, plus un grand visuel */
 .has-photo .page-head-inner { grid-template-columns: minmax(0, 1fr) clamp(190px, 24vw, 320px); }
 .page-head-media .ph { aspect-ratio: 16 / 9; }

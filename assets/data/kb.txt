@@ -1,5 +1,5 @@
 # BASE DE CONNAISSANCES — Communauté de Communes du Bassin d’Aubenas (CCBA)
-Mise à jour de cette base : 2026-10-04. Toutes les adresses de pages sont relatives à la racine du site.
+Mise à jour de cette base : 2026-10-05. Toutes les adresses de pages sont relatives à la racine du site.
 
 ## LA COLLECTIVITÉ
 Communauté de Communes du Bassin d'Aubenas (CCBA), Ardèche méridionale. 28 communes, 39 935 habitants, 75 élus communautaires. Ville-centre : Aubenas.
